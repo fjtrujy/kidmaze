@@ -13,6 +13,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - A recognized arrow is shown briefly as a large command before the nurse moves.
 - The child can switch between English and Spanish with the flag buttons. Recognized directions are both displayed and spoken in the selected language.
 - A large full-screen button is available alongside the drawing controls on browsers that expose the Fullscreen API.
+- The game always fits the current viewport without page scrolling; maze, drawing area, and controls compact automatically on shorter screens and when entering full screen.
 - The nurse keeps moving in that direction until it reaches a wall, the edge of the maze, or the bandage destination.
 - Drawing toward an adjacent wall produces a small bounce and a friendly spoken "no, no". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level.
