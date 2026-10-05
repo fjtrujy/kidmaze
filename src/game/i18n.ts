@@ -14,6 +14,8 @@ interface TranslationSet {
   clearDrawing: string;
   muteSound: string;
   turnSoundOn: string;
+  enterFullscreen: string;
+  exitFullscreen: string;
   playAgain: string;
   nurse: string;
   bandageDestination: string;
@@ -37,6 +39,8 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     clearDrawing: 'Clear drawing',
     muteSound: 'Mute sound',
     turnSoundOn: 'Turn sound on',
+    enterFullscreen: 'Enter full screen',
+    exitFullscreen: 'Exit full screen',
     playAgain: 'Play again',
     nurse: 'Nurse',
     bandageDestination: 'Bandage destination',
@@ -58,6 +62,8 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     clearDrawing: 'Borrar dibujo',
     muteSound: 'Silenciar sonido',
     turnSoundOn: 'Activar sonido',
+    enterFullscreen: 'Pantalla completa',
+    exitFullscreen: 'Salir de pantalla completa',
     playAgain: 'Jugar otra vez',
     nurse: 'Enfermera',
     bandageDestination: 'Destino: tirita',

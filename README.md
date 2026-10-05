@@ -8,10 +8,11 @@ The project deliberately avoids a UI framework and any external recognition serv
 
 - The maze is shown on the left in landscape orientation and above the drawing area in portrait orientation.
 - The child draws `UP`, `DOWN`, `LEFT`, or `RIGHT` with a pen, finger, or mouse. The drawing may contain multiple separate strokes.
-- After two seconds without any new drawing, a two-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
+- After one second without any new drawing, a one-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
 - Starting another stroke during either the idle delay or the scanner animation cancels the pending recognition and starts the timing again after that stroke finishes.
 - A recognized arrow is shown briefly as a large command before the nurse moves.
 - The child can switch between English and Spanish with the flag buttons. Recognized directions are both displayed and spoken in the selected language.
+- A large full-screen button is available alongside the drawing controls on browsers that expose the Fullscreen API.
 - The nurse keeps moving in that direction until it reaches a wall, the edge of the maze, or the bandage destination.
 - Drawing toward an adjacent wall produces a small bounce and a friendly spoken "no, no". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level.
@@ -111,7 +112,7 @@ The outer border does not have to be a wall because the maze model also treats t
 
 `DrawingCanvas` keeps every pointer stroke visible. When a stroke finishes, it waits for `DRAWING_IDLE_BEFORE_SCAN_MS`; if there is still no input, the scanner animation starts for `DRAWING_SCAN_DURATION_MS`. Recognition runs only after that animation finishes. A new pointer-down cancels either timer and hides the scanner immediately, so a child can keep drawing the shaft and arrowhead as separate strokes without triggering a command midway through the drawing.
 
-Both timing values live in `src/game/drawing-timing.ts`. They currently default to 2000 ms each and are intentionally centralized because they will probably need tuning after observing children use the game.
+Both timing values live in `src/game/drawing-timing.ts`. They currently default to 1000 ms each and are intentionally centralized because they will probably need tuning after observing children use the game.
 
 `StrokeRecognizer` works entirely in the browser. It combines the accumulated stroke points, removes points that are almost duplicates, rejects very small marks, and determines whether the drawing is predominantly horizontal or vertical. It then compares the perpendicular spread near both ends of that dominant axis.
 
@@ -128,7 +129,7 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 
 English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use.
 
-Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. A blocked move says "I can't move forward" / "No puedo avanzar".
+Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction.
 
 Regenerate the voice clips with:
 
@@ -137,6 +138,8 @@ npm run voice:generate
 ```
 
 The generation tool lives in `tools/generate-voice-assets.mjs`. It uses `kokoro-js` only during development and uses `espeak-phonemizer` to create the Spanish phonemes required by Kokoro. Neither dependency is bundled into the browser application; only the generated WAV files are deployed.
+
+Kokoro exposes several female English voices, so `VOICES.en` in the generation tool can be changed easily. The official Kokoro Spanish catalogue currently provides only one female Spanish voice, `ef_dora`; Kokoro does not expose a separate pitch control. Making that voice noticeably higher would therefore require audio post-processing rather than simply selecting another Spanish Kokoro voice.
 
 The service worker is only registered on deployed production hosts. Localhost explicitly unregisters old Kid Maze service workers and clears their caches so `vite preview` cannot get stuck serving an outdated `index.html` that references stale hashed JavaScript files.
 

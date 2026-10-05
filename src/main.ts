@@ -23,6 +23,7 @@ new GameController({
   clearButton: requiredElement<HTMLButtonElement>('clear-button'),
   soundButton: requiredElement<HTMLButtonElement>('sound-button'),
   soundIcon: requiredElement('sound-icon'),
+  fullscreenButton: requiredElement<HTMLButtonElement>('fullscreen-button'),
   commandFeedback: requiredElement('command-feedback'),
   feedbackArrow: requiredElement('feedback-arrow'),
   feedbackWord: requiredElement('feedback-word'),

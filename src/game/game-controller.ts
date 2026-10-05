@@ -16,6 +16,16 @@ const DIRECTION_SYMBOL: Record<Direction, string> = {
 
 const STEP_DURATION_MS = 185;
 const FEEDBACK_DURATION_MS = 560;
+const BLOCKED_MESSAGE_DELAY_MS = 350;
+
+type FullscreenDocument = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+
+type FullscreenElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
 
 interface GameElements {
   mazeBoard: HTMLElement;
@@ -28,6 +38,7 @@ interface GameElements {
   clearButton: HTMLButtonElement;
   soundButton: HTMLButtonElement;
   soundIcon: HTMLElement;
+  fullscreenButton: HTMLButtonElement;
   commandFeedback: HTMLElement;
   feedbackArrow: HTMLElement;
   feedbackWord: HTMLElement;
@@ -60,10 +71,17 @@ export class GameController {
 
     elements.clearButton.addEventListener('click', () => this.drawingCanvas.clear());
     elements.soundButton.addEventListener('click', () => this.toggleSound());
+    elements.fullscreenButton.addEventListener('click', () => void this.toggleFullscreen());
     elements.restartButton.addEventListener('click', () => this.restart());
     elements.languageEnButton.addEventListener('click', () => this.setLanguage('en'));
     elements.languageEsButton.addEventListener('click', () => this.setLanguage('es'));
+    document.addEventListener('fullscreenchange', this.updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', this.updateFullscreenButton);
     window.addEventListener('keydown', this.handleKeyDown);
+
+    if (!this.fullscreenSupported()) {
+      elements.fullscreenButton.hidden = true;
+    }
 
     this.applyLanguage();
     this.loadLevel(0);
@@ -129,6 +147,7 @@ export class GameController {
     const path = this.maze.moveUntilBlocked(direction);
 
     if (path.length === 0) {
+      await wait(BLOCKED_MESSAGE_DELAY_MS);
       this.sound.playBump(this.language);
       await this.mazeView.bump(direction);
       this.setBusy(false);
@@ -208,6 +227,47 @@ export class GameController {
     this.elements.soundButton.setAttribute('aria-label', muted ? text.turnSoundOn : text.muteSound);
   }
 
+  private fullscreenSupported(): boolean {
+    const root = document.documentElement as FullscreenElement;
+    return typeof root.requestFullscreen === 'function' || typeof root.webkitRequestFullscreen === 'function';
+  }
+
+  private isFullscreen(): boolean {
+    const fullscreenDocument = document as FullscreenDocument;
+    return Boolean(document.fullscreenElement ?? fullscreenDocument.webkitFullscreenElement);
+  }
+
+  private async toggleFullscreen(): Promise<void> {
+    const fullscreenDocument = document as FullscreenDocument;
+    const root = document.documentElement as FullscreenElement;
+
+    try {
+      if (this.isFullscreen()) {
+        if (typeof document.exitFullscreen === 'function') {
+          await document.exitFullscreen();
+        } else {
+          await fullscreenDocument.webkitExitFullscreen?.();
+        }
+      } else if (typeof root.requestFullscreen === 'function') {
+        await root.requestFullscreen();
+      } else {
+        await root.webkitRequestFullscreen?.();
+      }
+    } catch (error) {
+      console.warn('Unable to change full screen mode.', error);
+    }
+  }
+
+  private readonly updateFullscreenButton = (): void => {
+    const fullscreen = this.isFullscreen();
+    const text = translation(this.language);
+    this.elements.fullscreenButton.setAttribute('aria-pressed', String(fullscreen));
+    this.elements.fullscreenButton.setAttribute(
+      'aria-label',
+      fullscreen ? text.exitFullscreen : text.enterFullscreen,
+    );
+  };
+
   private setLanguage(language: Language): void {
     if (this.language === language) {
       return;
@@ -232,6 +292,7 @@ export class GameController {
       'aria-label',
       this.sound.isMuted ? text.turnSoundOn : text.muteSound,
     );
+    this.updateFullscreenButton();
     this.elements.restartButton.setAttribute('aria-label', text.playAgain);
     this.mazeView.setLanguage(this.language);
   }
