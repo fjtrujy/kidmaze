@@ -192,7 +192,7 @@ button {
 
 .floor-cell {
   background:
-    radial-gradient(circle at 30% 30%, rgb(255 255 255 / 65%) 0 9%, transparent 10%),
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 65%) 0 9%, transparent 10%),
     #f8eabc;
 }
 
@@ -341,10 +341,10 @@ button {
 .scanner-line {
   position: absolute;
   top: -5px;
-  left: 5%;
-  right: 5%;
+  left: 0;
+  right: 0;
   height: 5px;
-  border-radius: 999px;
+  border-radius: 0;
   background: #35d9f2;
   box-shadow:
     0 0 8px #35d9f2,

@@ -126,6 +126,8 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 
 ## Language and speech
 
-English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use. Direction feedback uses the browser's Web Speech API, so the exact voice depends on the device and installed browser voices. Muting sound also disables and cancels speech.
+English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use. Direction feedback uses the browser's Web Speech API. `SoundController` prefers a curated set of warmer, female-sounding system voices when available and falls back to the best installed voice for the selected language. The exact voice still depends on the device and browser. Muting sound also disables and cancels speech.
+
+The service worker is only registered on deployed production hosts. Localhost explicitly unregisters old Kid Maze service workers and clears their caches so `vite preview` cannot get stuck serving an outdated `index.html` that references stale hashed JavaScript files.
 
 These constraints are isolated inside `src/game/stroke-recognizer.ts`, so the recognizer can later be replaced or augmented without changing the maze or game controller.

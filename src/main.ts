@@ -30,9 +30,26 @@ new GameController({
   restartButton: requiredElement<HTMLButtonElement>('restart-button'),
 });
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
+    if (isLocalHost) {
+      void navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+        if ('caches' in window) {
+          const cacheNames = await window.caches.keys();
+          await Promise.all(
+            cacheNames.filter((name) => name.startsWith('kidmaze-')).map((name) => window.caches.delete(name)),
+          );
+        }
+      });
+      return;
+    }
+
+    if (import.meta.env.PROD) {
+      void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
+    }
   });
 }
 
