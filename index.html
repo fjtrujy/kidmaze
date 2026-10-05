@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6c94c" />
+    <meta
+      name="description"
+      content="A simple drawing game that teaches children how commands guide a computer."
+    />
+    <title>Kid Maze</title>
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Kid Maze">
+      <section class="maze-panel" aria-label="Maze">
+        <div class="panel-topbar">
+          <div class="brand" aria-label="Kid Maze">
+            <span class="brand-nurse" aria-hidden="true">👩‍⚕️</span>
+            <span class="brand-name">Kid Maze</span>
+          </div>
+          <div id="level-progress" class="level-progress" aria-label="Level progress"></div>
+        </div>
+
+        <div class="maze-stage">
+          <div id="maze-board" class="maze-board" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="drawing-panel" aria-label="Drawing area">
+        <div class="drawing-card">
+          <div class="drawing-hint" aria-hidden="true">
+            <span>↑</span><span>↓</span><span>←</span><span>→</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="drawing-canvas" aria-label="Draw an arrow here"></canvas>
+            <div class="canvas-watermark" aria-hidden="true">✎</div>
+          </div>
+          <div class="drawing-actions">
+            <button id="clear-button" class="round-button" type="button" aria-label="Clear drawing">
+              <span aria-hidden="true">↺</span>
+            </button>
+            <button id="sound-button" class="round-button" type="button" aria-label="Mute sound">
+              <span id="sound-icon" aria-hidden="true">🔊</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="command-feedback" class="command-feedback" aria-live="polite" aria-hidden="true">
+      <div id="feedback-arrow" class="feedback-arrow" aria-hidden="true">↑</div>
+      <div id="feedback-word" class="feedback-word">UP</div>
+    </div>
+
+    <div id="final-celebration" class="final-celebration" aria-hidden="true">
+      <div class="final-card">
+        <div class="final-stars" aria-hidden="true">⭐ ✨ ⭐</div>
+        <div class="final-nurse" aria-hidden="true">👩‍⚕️</div>
+        <div class="final-stars" aria-hidden="true">✨ ⭐ ✨</div>
+        <button id="restart-button" class="restart-button" type="button" aria-label="Play again">
+          <span aria-hidden="true">↻</span>
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+

@@ -1,0 +1,578 @@
+:root {
+  font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color: #173451;
+  background: #83d5ed;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  min-height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 10% 10%, rgb(255 255 255 / 55%) 0 7%, transparent 7.5%),
+    radial-gradient(circle at 88% 22%, rgb(255 255 255 / 35%) 0 5%, transparent 5.5%),
+    linear-gradient(155deg, #8fdcf0 0%, #c5eef4 46%, #ffe39a 100%);
+}
+
+button,
+canvas {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+.game-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: 100%;
+  height: 100dvh;
+  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  gap: clamp(12px, 2vw, 28px);
+}
+
+.maze-panel,
+.drawing-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.maze-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.panel-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #214c6c;
+}
+
+.brand-nurse {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #fff7db;
+  box-shadow: 0 5px 0 rgb(43 99 117 / 18%);
+  font-size: 28px;
+}
+
+.brand-name {
+  font-size: clamp(18px, 2vw, 28px);
+}
+
+.level-progress {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: clamp(5px, 0.7vw, 9px);
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 45%);
+}
+
+.level-dot {
+  width: clamp(9px, 1.2vw, 14px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(31 69 110 / 20%);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.level-dot.is-current {
+  background: #f49a3d;
+  transform: scale(1.35);
+  box-shadow: 0 0 0 4px rgb(244 154 61 / 18%);
+}
+
+.level-dot.is-complete {
+  background: #4a9f69;
+}
+
+.maze-stage {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.maze-board {
+  --maze-cols: 6;
+  --maze-rows: 6;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--maze-cols), 1fr);
+  grid-template-rows: repeat(var(--maze-rows), 1fr);
+  width: min(100%, 74vh);
+  max-height: 100%;
+  overflow: hidden;
+  border: clamp(7px, 0.9vw, 12px) solid #f9f0c7;
+  border-radius: clamp(24px, 3vw, 42px);
+  background: #f9f0c7;
+  box-shadow:
+    0 16px 30px rgb(30 79 91 / 20%),
+    inset 0 0 0 2px rgb(255 255 255 / 65%);
+}
+
+.maze-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.floor-cell {
+  background:
+    radial-gradient(circle at 30% 30%, rgb(255 255 255 / 65%) 0 9%, transparent 10%),
+    #f8eabc;
+}
+
+.wall-cell {
+  z-index: 1;
+  margin: 4%;
+  border-radius: 22%;
+  background:
+    radial-gradient(circle at 30% 30%, #7bbb72 0 16%, transparent 17%),
+    radial-gradient(circle at 70% 65%, #2d7652 0 20%, transparent 21%),
+    #4b9560;
+  box-shadow:
+    inset 0 -5px 0 rgb(22 91 68 / 24%),
+    0 2px 0 rgb(255 255 255 / 24%);
+}
+
+.exit-cell {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #fff8bd 0 28%, #f6d36a 30% 48%, #f8eabc 50%);
+}
+
+.exit-bandage {
+  display: grid;
+  place-items: center;
+  width: 74%;
+  height: 74%;
+  font-size: clamp(20px, 5vw, 56px);
+  filter: drop-shadow(0 4px 2px rgb(108 75 7 / 18%));
+  animation: exit-pulse 1.4s ease-in-out infinite;
+}
+
+.nurse {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  font-size: clamp(27px, 6vw, 70px);
+  line-height: 1;
+  filter: drop-shadow(0 5px 3px rgb(66 50 29 / 25%));
+  transform: scale(0.78);
+  transition: left 170ms ease-in-out, top 170ms ease-in-out;
+  pointer-events: none;
+}
+
+.nurse.is-moving {
+  animation: nurse-walk 185ms ease-in-out infinite alternate;
+}
+
+.nurse.bump-up {
+  animation: bump-up 300ms ease;
+}
+
+.nurse.bump-down {
+  animation: bump-down 300ms ease;
+}
+
+.nurse.bump-left {
+  animation: bump-left 300ms ease;
+}
+
+.nurse.bump-right {
+  animation: bump-right 300ms ease;
+}
+
+.nurse.is-celebrating {
+  animation: nurse-celebrate 650ms ease-in-out 1;
+}
+
+.drawing-panel {
+  display: grid;
+  place-items: center;
+}
+
+.drawing-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(14px, 2.2vw, 28px);
+  border: 5px solid rgb(255 255 255 / 75%);
+  border-radius: clamp(28px, 4vw, 52px);
+  background: rgb(255 249 224 / 78%);
+  box-shadow:
+    0 18px 34px rgb(40 82 102 / 17%),
+    inset 0 2px 0 #fff;
+  backdrop-filter: blur(4px);
+}
+
+.drawing-hint {
+  display: flex;
+  justify-content: center;
+  gap: clamp(12px, 2.5vw, 28px);
+  padding: 0 0 clamp(8px, 1vw, 14px);
+  font-size: clamp(30px, 4.5vw, 58px);
+  font-weight: 950;
+  line-height: 1;
+  color: #5aa7b4;
+  opacity: 0.62;
+}
+
+.canvas-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: clamp(5px, 0.8vw, 9px) solid #ffd36d;
+  border-radius: clamp(22px, 3vw, 38px);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 47px, rgb(67 151 171 / 7%) 48px 49px),
+    #fffef7;
+  box-shadow:
+    inset 0 2px 8px rgb(31 69 110 / 8%),
+    0 7px 0 #e4b74e;
+}
+
+#drawing-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+#drawing-canvas.is-disabled {
+  cursor: default;
+}
+
+.canvas-watermark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  font-size: clamp(80px, 15vw, 180px);
+  color: #6ab2c0;
+  opacity: 0.075;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.drawing-actions {
+  display: flex;
+  justify-content: center;
+  gap: clamp(14px, 2vw, 24px);
+  padding-top: clamp(15px, 2vw, 24px);
+}
+
+.round-button,
+.restart-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #173451;
+  background: #fff8dc;
+  box-shadow: 0 7px 0 #d2b45f, 0 11px 18px rgb(47 81 93 / 12%);
+  cursor: pointer;
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+
+.round-button {
+  width: clamp(58px, 7vw, 82px);
+  height: clamp(58px, 7vw, 82px);
+  border-radius: 24px;
+  font-size: clamp(28px, 3.5vw, 40px);
+}
+
+.round-button:active,
+.restart-button:active {
+  transform: translateY(5px);
+  box-shadow: 0 2px 0 #d2b45f;
+}
+
+.round-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.command-feedback {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  visibility: hidden;
+  background: rgb(28 76 96 / 12%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease, visibility 100ms;
+}
+
+.command-feedback.is-visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.feedback-arrow {
+  display: grid;
+  place-items: center;
+  width: min(38vw, 260px);
+  aspect-ratio: 1;
+  border: 8px solid #fff;
+  border-radius: 34%;
+  background: #f6c94c;
+  box-shadow: 0 20px 45px rgb(26 66 76 / 28%);
+  font-size: min(25vw, 180px);
+  font-weight: 950;
+  line-height: 1;
+  color: #1f456e;
+  animation: command-pop 560ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.feedback-word {
+  margin-top: 13px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgb(26 66 76 / 16%);
+  font-size: clamp(18px, 3vw, 32px);
+  font-weight: 950;
+  letter-spacing: 0.09em;
+  color: #1f456e;
+}
+
+.feedback-word.is-empty {
+  visibility: hidden;
+}
+
+.final-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(31 79 103 / 58%);
+  backdrop-filter: blur(8px);
+}
+
+.final-celebration.is-hidden {
+  display: none;
+}
+
+.final-card {
+  display: grid;
+  justify-items: center;
+  min-width: min(92vw, 420px);
+  padding: 34px 48px 42px;
+  border: 7px solid #fff;
+  border-radius: 48px;
+  background: #fff0a9;
+  box-shadow: 0 28px 60px rgb(20 53 69 / 34%);
+  animation: final-pop 500ms cubic-bezier(0.16, 1.2, 0.3, 1);
+}
+
+.final-nurse {
+  font-size: clamp(95px, 22vw, 180px);
+  animation: final-nurse 800ms ease-in-out infinite alternate;
+}
+
+.final-stars {
+  font-size: clamp(30px, 6vw, 56px);
+  letter-spacing: 0.12em;
+}
+
+.restart-button {
+  width: 92px;
+  height: 72px;
+  margin-top: 20px;
+  border-radius: 24px;
+  font-size: 44px;
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -8vh;
+  left: var(--confetti-x);
+  font-size: clamp(16px, 2.2vw, 30px);
+  color: #f49a3d;
+  filter: hue-rotate(var(--confetti-hue));
+  animation: confetti-fall 1.55s var(--confetti-delay) cubic-bezier(0.15, 0.75, 0.55, 1) forwards;
+}
+
+@keyframes exit-pulse {
+  0%, 100% { transform: scale(0.92) rotate(-4deg); }
+  50% { transform: scale(1.08) rotate(4deg); }
+}
+
+@keyframes nurse-walk {
+  from { transform: scale(0.78) rotate(-4deg); }
+  to { transform: scale(0.82) rotate(4deg); }
+}
+
+@keyframes bump-up {
+  0%, 100% { transform: scale(0.78) translateY(0); }
+  45% { transform: scale(0.76) translateY(-15%); }
+}
+
+@keyframes bump-down {
+  0%, 100% { transform: scale(0.78) translateY(0); }
+  45% { transform: scale(0.76) translateY(15%); }
+}
+
+@keyframes bump-left {
+  0%, 100% { transform: scale(0.78) translateX(0); }
+  45% { transform: scale(0.76) translateX(-15%); }
+}
+
+@keyframes bump-right {
+  0%, 100% { transform: scale(0.78) translateX(0); }
+  45% { transform: scale(0.76) translateX(15%); }
+}
+
+@keyframes nurse-celebrate {
+  0% { transform: scale(0.78) rotate(0); }
+  28% { transform: scale(1.12) rotate(-12deg) translateY(-12%); }
+  55% { transform: scale(1.05) rotate(12deg) translateY(-16%); }
+  100% { transform: scale(0.78) rotate(0); }
+}
+
+@keyframes command-pop {
+  0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+  38% { transform: scale(1.1) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes final-pop {
+  from { transform: scale(0.55) rotate(-4deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes final-nurse {
+  from { transform: rotate(-7deg) translateY(4px); }
+  to { transform: rotate(7deg) translateY(-12px); }
+}
+
+@keyframes confetti-fall {
+  from { transform: translateY(0) rotate(0); opacity: 1; }
+  to { transform: translateY(116vh) rotate(var(--confetti-turn)); opacity: 0.78; }
+}
+
+@media (orientation: portrait), (max-width: 720px) {
+  body {
+    overflow: hidden;
+  }
+
+  .game-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 47fr) minmax(0, 53fr);
+    height: 100dvh;
+    min-height: 0;
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .maze-panel {
+    gap: 5px;
+  }
+
+  .panel-topbar {
+    min-height: 38px;
+  }
+
+  .brand-nurse {
+    width: 36px;
+    height: 36px;
+    font-size: 23px;
+    border-radius: 11px;
+  }
+
+  .brand-name {
+    font-size: 18px;
+  }
+
+  .maze-board {
+    width: min(88vw, 44dvh);
+    border-width: 6px;
+    border-radius: 24px;
+  }
+
+  .drawing-card {
+    padding: 12px;
+    border-radius: 28px;
+  }
+
+  .drawing-hint {
+    font-size: 30px;
+    padding-bottom: 8px;
+  }
+
+  .drawing-actions {
+    padding-top: 13px;
+  }
+
+  .round-button {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    font-size: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
