@@ -16,7 +16,7 @@ const DIRECTION_SYMBOL: Record<Direction, string> = {
 
 const STEP_DURATION_MS = 185;
 const FEEDBACK_DURATION_MS = 560;
-const BLOCKED_MESSAGE_DELAY_MS = 350;
+const BLOCKED_MESSAGE_DELAY_MS = 250;
 
 type FullscreenDocument = Document & {
   webkitFullscreenElement?: Element | null;
@@ -113,9 +113,9 @@ export class GameController {
 
     this.sound.playRecognized();
     const word = translation(this.language).directions[result.direction];
-    this.sound.playDirection(result.direction, this.language);
+    const directionSpeech = this.sound.playDirection(result.direction, this.language);
     await this.showFeedback(DIRECTION_SYMBOL[result.direction], word);
-    await this.executeDirection(result.direction);
+    await this.executeDirection(result.direction, directionSpeech);
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
@@ -138,15 +138,16 @@ export class GameController {
     this.setBusy(true);
     this.sound.playRecognized();
     const word = translation(this.language).directions[direction];
-    this.sound.playDirection(direction, this.language);
+    const directionSpeech = this.sound.playDirection(direction, this.language);
     await this.showFeedback(DIRECTION_SYMBOL[direction], word);
-    await this.executeDirection(direction);
+    await this.executeDirection(direction, directionSpeech);
   }
 
-  private async executeDirection(direction: Direction): Promise<void> {
+  private async executeDirection(direction: Direction, directionSpeech: Promise<void>): Promise<void> {
     const path = this.maze.moveUntilBlocked(direction);
 
     if (path.length === 0) {
+      await directionSpeech;
       await wait(BLOCKED_MESSAGE_DELAY_MS);
       this.sound.playBump(this.language);
       await this.mazeView.bump(direction);

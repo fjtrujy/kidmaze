@@ -44,13 +44,13 @@ export class SoundController {
     this.playTone(523, 0.08, 0.05);
   }
 
-  playDirection(direction: Direction, language: Language): void {
-    this.playVoiceClip(language, direction.toLowerCase() as VoiceClip);
+  playDirection(direction: Direction, language: Language): Promise<void> {
+    return this.playVoiceClip(language, direction.toLowerCase() as VoiceClip);
   }
 
   playBump(language: Language): void {
     this.playTone(170, 0.1, 0.055, 'triangle');
-    this.playVoiceClip(language, 'blocked');
+    void this.playVoiceClip(language, 'blocked');
   }
 
   playSuccess(): void {
@@ -100,14 +100,14 @@ export class SoundController {
     );
   }
 
-  private playVoiceClip(language: Language, clip: VoiceClip): void {
+  private playVoiceClip(language: Language, clip: VoiceClip): Promise<void> {
     if (this.muted) {
-      return;
+      return Promise.resolve();
     }
 
     const buffer = this.voiceBuffers.get(voiceKey(language, clip));
     if (!buffer) {
-      return;
+      return Promise.resolve();
     }
 
     const context = this.getContext();
@@ -118,13 +118,16 @@ export class SoundController {
     source.buffer = buffer;
     source.connect(gain);
     gain.connect(context.destination);
-    source.onended = () => {
-      if (this.activeVoice === source) {
-        this.activeVoice = null;
-      }
-    };
     this.activeVoice = source;
     source.start();
+    return new Promise((resolve) => {
+      source.onended = () => {
+        if (this.activeVoice === source) {
+          this.activeVoice = null;
+        }
+        resolve();
+      };
+    });
   }
 
   private stopVoice(): void {
