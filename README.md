@@ -8,10 +8,12 @@ The project deliberately avoids a UI framework and any external recognition serv
 
 - The maze is shown on the left in landscape orientation and above the drawing area in portrait orientation.
 - The child draws `UP`, `DOWN`, `LEFT`, or `RIGHT` with a pen, finger, or mouse. The drawing may contain multiple separate strokes.
-- After five seconds without any new drawing, the accumulated strokes are interpreted as one command.
+- After two seconds without any new drawing, a two-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
+- Starting another stroke during either the idle delay or the scanner animation cancels the pending recognition and starts the timing again after that stroke finishes.
 - A recognized arrow is shown briefly as a large command before the nurse moves.
+- The child can switch between English and Spanish with the flag buttons. Recognized directions are both displayed and spoken in the selected language.
 - The nurse keeps moving in that direction until it reaches a wall, the edge of the maze, or the bandage destination.
-- Drawing toward an adjacent wall only produces a small bounce. There are no penalties or lives.
+- Drawing toward an adjacent wall produces a small bounce and a friendly spoken "no, no". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level.
 - The arrow keys on a keyboard provide a debug control path and are not needed to play the game.
 
@@ -23,7 +25,9 @@ src/
   styles.css                    Responsive game presentation and animations
   game/
     drawing-canvas.ts           Pointer Events input and live stroke rendering
+    drawing-timing.ts           Easy-to-tune idle and scanner timing constants
     game-controller.ts          Game flow, feedback, level transitions, and controls
+    i18n.ts                     English/Spanish UI and direction translations
     levels.ts                   Hand-authored level definitions
     maze.ts                     Grid model and move-until-blocked logic
     maze-view.ts                Maze, bandage, and nurse rendering
@@ -105,7 +109,9 @@ The outer border does not have to be a wall because the maze model also treats t
 
 ## Arrow recognition
 
-`DrawingCanvas` keeps every pointer stroke visible and restarts a five-second idle timer whenever a stroke finishes. A new stroke cancels and restarts that timer. Only after five seconds of inactivity is the complete drawing passed to `StrokeRecognizer`, so a child can draw the shaft and arrowhead separately without triggering commands in between.
+`DrawingCanvas` keeps every pointer stroke visible. When a stroke finishes, it waits for `DRAWING_IDLE_BEFORE_SCAN_MS`; if there is still no input, the scanner animation starts for `DRAWING_SCAN_DURATION_MS`. Recognition runs only after that animation finishes. A new pointer-down cancels either timer and hides the scanner immediately, so a child can keep drawing the shaft and arrowhead as separate strokes without triggering a command midway through the drawing.
+
+Both timing values live in `src/game/drawing-timing.ts`. They currently default to 2000 ms each and are intentionally centralized because they will probably need tuning after observing children use the game.
 
 `StrokeRecognizer` works entirely in the browser. It combines the accumulated stroke points, removes points that are almost duplicates, rejects very small marks, and determines whether the drawing is predominantly horizontal or vertical. It then compares the perpendicular spread near both ends of that dominant axis.
 
@@ -113,9 +119,13 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 
 ### Known recognizer limitations
 
-- The recognizer treats all strokes made within the five-second inactivity window as one drawing. Unrelated marks left in the same drawing can therefore reduce recognition confidence.
+- The recognizer treats all strokes made before a complete idle-plus-scan cycle as one drawing. Unrelated marks left in the same drawing can therefore reduce recognition confidence.
 - Extremely diagonal arrows can be rejected because the game intentionally only accepts four cardinal directions.
 - A very short arrowhead, or an arrowhead almost as wide at both ends of the drawing, may not provide enough geometric contrast and can return `UNKNOWN`.
 - Geometry alone cannot cover every way a young child may draw an arrow. The thresholds are intentionally conservative so an uncertain drawing becomes a friendly retry instead of an incorrect command.
+
+## Language and speech
+
+English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use. Direction feedback uses the browser's Web Speech API, so the exact voice depends on the device and installed browser voices. Muting sound also disables and cancels speech.
 
 These constraints are isolated inside `src/game/stroke-recognizer.ts`, so the recognizer can later be replaced or augmented without changing the maze or game controller.

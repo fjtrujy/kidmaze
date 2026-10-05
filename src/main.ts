@@ -15,7 +15,11 @@ finalCelebration.classList.add('is-hidden');
 new GameController({
   mazeBoard: requiredElement('maze-board'),
   levelProgress: requiredElement('level-progress'),
+  languageSelector: requiredElement('language-selector'),
+  languageEnButton: requiredElement<HTMLButtonElement>('language-en'),
+  languageEsButton: requiredElement<HTMLButtonElement>('language-es'),
   drawingCanvas: requiredElement<HTMLCanvasElement>('drawing-canvas'),
+  drawingScanner: requiredElement('drawing-scanner'),
   clearButton: requiredElement<HTMLButtonElement>('clear-button'),
   soundButton: requiredElement<HTMLButtonElement>('sound-button'),
   soundIcon: requiredElement('sound-icon'),

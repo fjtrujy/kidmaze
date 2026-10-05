@@ -18,7 +18,17 @@
             <span class="brand-nurse" aria-hidden="true">👩‍⚕️</span>
             <span class="brand-name">Kid Maze</span>
           </div>
-          <div id="level-progress" class="level-progress" aria-label="Level progress"></div>
+          <div class="topbar-tools">
+            <div id="language-selector" class="language-selector" aria-label="Language">
+              <button id="language-en" class="language-button" type="button" aria-label="English" aria-pressed="true">
+                <span aria-hidden="true">🇬🇧</span>
+              </button>
+              <button id="language-es" class="language-button" type="button" aria-label="Spanish" aria-pressed="false">
+                <span aria-hidden="true">🇪🇸</span>
+              </button>
+            </div>
+            <div id="level-progress" class="level-progress" aria-label="Level progress"></div>
+          </div>
         </div>
 
         <div class="maze-stage">
@@ -33,6 +43,9 @@
           </div>
           <div class="canvas-wrap">
             <canvas id="drawing-canvas" aria-label="Draw an arrow here"></canvas>
+            <div id="drawing-scanner" class="drawing-scanner" aria-hidden="true">
+              <span class="scanner-line"></span>
+            </div>
             <div class="canvas-watermark" aria-hidden="true">✎</div>
           </div>
           <div class="drawing-actions">

@@ -1,23 +1,26 @@
 import type { Drawing, Point } from './types';
+import { DRAWING_IDLE_BEFORE_SCAN_MS, DRAWING_SCAN_DURATION_MS } from './drawing-timing';
 
 type DrawingCallback = (strokes: Drawing) => void;
-
-const DRAWING_IDLE_MS = 5000;
 
 export class DrawingCanvas {
   private readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
+  private readonly scanner: HTMLElement;
   private readonly onDrawingFinished: DrawingCallback;
   private readonly resizeObserver: ResizeObserver;
   private strokes: Point[][] = [];
   private activeStroke: Point[] = [];
   private activePointerId: number | null = null;
   private idleTimer: number | null = null;
+  private scanTimer: number | null = null;
   private enabled = true;
 
-  constructor(canvas: HTMLCanvasElement, onDrawingFinished: DrawingCallback) {
+  constructor(canvas: HTMLCanvasElement, scanner: HTMLElement, onDrawingFinished: DrawingCallback) {
     this.canvas = canvas;
+    this.scanner = scanner;
     this.onDrawingFinished = onDrawingFinished;
+    this.scanner.style.setProperty('--scan-duration', `${DRAWING_SCAN_DURATION_MS}ms`);
 
     const context = canvas.getContext('2d');
     if (!context) {
@@ -44,7 +47,7 @@ export class DrawingCanvas {
   }
 
   clear(): void {
-    this.cancelIdleTimer();
+    this.cancelPendingRecognition();
     if (this.activePointerId !== null && this.canvas.hasPointerCapture(this.activePointerId)) {
       this.canvas.releasePointerCapture(this.activePointerId);
     }
@@ -55,6 +58,7 @@ export class DrawingCanvas {
   }
 
   destroy(): void {
+    this.cancelPendingRecognition();
     this.resizeObserver.disconnect();
     this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
     this.canvas.removeEventListener('pointermove', this.handlePointerMove);
@@ -68,7 +72,7 @@ export class DrawingCanvas {
     }
 
     event.preventDefault();
-    this.cancelIdleTimer();
+    this.cancelPendingRecognition();
     this.activePointerId = event.pointerId;
     this.canvas.setPointerCapture(event.pointerId);
     this.activeStroke = [this.eventPoint(event)];
@@ -116,24 +120,47 @@ export class DrawingCanvas {
   }
 
   private scheduleRecognition(): void {
-    this.cancelIdleTimer();
+    this.cancelPendingRecognition();
     this.idleTimer = window.setTimeout(() => {
       this.idleTimer = null;
       if (!this.enabled || this.activePointerId !== null || this.strokes.length === 0) {
         return;
       }
 
-      const drawing = this.strokes.map((stroke) => [...stroke]);
-      this.onDrawingFinished(drawing);
-    }, DRAWING_IDLE_MS);
+      this.startScanner();
+      this.scanTimer = window.setTimeout(() => {
+        this.scanTimer = null;
+        this.stopScanner();
+        if (!this.enabled || this.activePointerId !== null || this.strokes.length === 0) {
+          return;
+        }
+
+        const drawing = this.strokes.map((stroke) => [...stroke]);
+        this.onDrawingFinished(drawing);
+      }, DRAWING_SCAN_DURATION_MS);
+    }, DRAWING_IDLE_BEFORE_SCAN_MS);
   }
 
-  private cancelIdleTimer(): void {
-    if (this.idleTimer === null) {
-      return;
+  private cancelPendingRecognition(): void {
+    if (this.idleTimer !== null) {
+      window.clearTimeout(this.idleTimer);
+      this.idleTimer = null;
     }
-    window.clearTimeout(this.idleTimer);
-    this.idleTimer = null;
+    if (this.scanTimer !== null) {
+      window.clearTimeout(this.scanTimer);
+      this.scanTimer = null;
+    }
+    this.stopScanner();
+  }
+
+  private startScanner(): void {
+    this.scanner.classList.remove('is-scanning');
+    void this.scanner.offsetWidth;
+    this.scanner.classList.add('is-scanning');
+  }
+
+  private stopScanner(): void {
+    this.scanner.classList.remove('is-scanning');
   }
 
   private resize(): void {
@@ -154,7 +181,7 @@ export class DrawingCanvas {
     this.context.lineWidth = Math.max(10, Math.min(rect.width, rect.height) * 0.038);
     this.context.strokeStyle = '#1f456e';
     this.context.fillStyle = '#1f456e';
-    this.cancelIdleTimer();
+    this.cancelPendingRecognition();
     this.strokes = [];
     this.activeStroke = [];
   }

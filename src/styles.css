@@ -90,6 +90,47 @@ button {
   font-size: clamp(18px, 2vw, 28px);
 }
 
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(7px, 1vw, 12px);
+  min-width: 0;
+}
+
+.language-selector {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 45%);
+}
+
+.language-button {
+  display: grid;
+  place-items: center;
+  width: clamp(32px, 3.2vw, 42px);
+  height: clamp(30px, 3vw, 38px);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: clamp(18px, 2vw, 25px);
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.language-button[aria-pressed='true'] {
+  background: #fff7db;
+  box-shadow: 0 3px 0 rgb(43 99 117 / 18%);
+  transform: scale(1.06);
+}
+
+.language-button:active {
+  transform: translateY(2px);
+}
+
 .level-progress {
   display: flex;
   justify-content: flex-end;
@@ -281,6 +322,50 @@ button {
 
 #drawing-canvas.is-disabled {
   cursor: default;
+}
+
+.drawing-scanner {
+  --scan-duration: 2000ms;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drawing-scanner.is-scanning {
+  opacity: 1;
+}
+
+.scanner-line {
+  position: absolute;
+  top: -5px;
+  left: 5%;
+  right: 5%;
+  height: 5px;
+  border-radius: 999px;
+  background: #35d9f2;
+  box-shadow:
+    0 0 8px #35d9f2,
+    0 0 18px rgb(53 217 242 / 80%),
+    0 0 34px rgb(53 217 242 / 48%);
+  opacity: 0;
+}
+
+.scanner-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 84px;
+  background: linear-gradient(to top, rgb(53 217 242 / 24%), transparent);
+  transform: translateY(100%);
+}
+
+.drawing-scanner.is-scanning .scanner-line {
+  animation: scanner-sweep var(--scan-duration) linear forwards;
 }
 
 .canvas-watermark {
@@ -490,6 +575,23 @@ button {
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
+@keyframes scanner-sweep {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% - 5px);
+    opacity: 0;
+  }
+}
+
 @keyframes final-pop {
   from { transform: scale(0.55) rotate(-4deg); opacity: 0; }
   to { transform: scale(1) rotate(0); opacity: 1; }
@@ -535,6 +637,21 @@ button {
   }
 
   .brand-name {
+    font-size: 18px;
+  }
+
+  .topbar-tools {
+    gap: 6px;
+  }
+
+  .language-selector {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .language-button {
+    width: 30px;
+    height: 28px;
     font-size: 18px;
   }
 

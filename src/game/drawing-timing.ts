@@ -1,0 +1,2 @@
+export const DRAWING_IDLE_BEFORE_SCAN_MS = 2000;
+export const DRAWING_SCAN_DURATION_MS = 2000;

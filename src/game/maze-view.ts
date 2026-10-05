@@ -1,4 +1,5 @@
 import type { Direction, ParsedMazeLevel, Position } from './types';
+import { translation, type Language } from './i18n';
 
 function samePosition(a: Position, b: Position): boolean {
   return a.row === b.row && a.col === b.col;
@@ -11,8 +12,10 @@ function wait(milliseconds: number): Promise<void> {
 export class MazeView {
   private readonly board: HTMLElement;
   private player: HTMLElement | null = null;
+  private exit: HTMLElement | null = null;
   private rows = 1;
   private cols = 1;
+  private language: Language = 'en';
 
   constructor(board: HTMLElement) {
     this.board = board;
@@ -22,6 +25,7 @@ export class MazeView {
     this.rows = level.rows;
     this.cols = level.cols;
     this.board.replaceChildren();
+    this.exit = null;
     this.board.style.setProperty('--maze-rows', String(level.rows));
     this.board.style.setProperty('--maze-cols', String(level.cols));
     this.board.style.aspectRatio = `${level.cols} / ${level.rows}`;
@@ -37,7 +41,7 @@ export class MazeView {
           const exit = document.createElement('span');
           exit.className = 'exit-bandage';
           exit.textContent = '🩹';
-          exit.setAttribute('aria-label', 'Bandage destination');
+          this.exit = exit;
           cell.append(exit);
         }
 
@@ -48,9 +52,14 @@ export class MazeView {
     this.player = document.createElement('div');
     this.player.className = 'nurse';
     this.player.textContent = '👩‍⚕️';
-    this.player.setAttribute('aria-label', 'Nurse');
     this.board.append(this.player);
+    this.updateAccessibleLabels();
     this.setPlayerPosition(playerPosition, false);
+  }
+
+  setLanguage(language: Language): void {
+    this.language = language;
+    this.updateAccessibleLabels();
   }
 
   setPlayerPosition(position: Position, animated = true): void {
@@ -83,6 +92,12 @@ export class MazeView {
     this.player.classList.add('is-celebrating');
     await wait(720);
     this.player.classList.remove('is-celebrating');
+  }
+
+  private updateAccessibleLabels(): void {
+    const text = translation(this.language);
+    this.player?.setAttribute('aria-label', text.nurse);
+    this.exit?.setAttribute('aria-label', text.bandageDestination);
   }
 }
 

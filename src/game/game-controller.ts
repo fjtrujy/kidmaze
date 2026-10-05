@@ -1,4 +1,5 @@
 import { DrawingCanvas } from './drawing-canvas';
+import { initialLanguage, translation, type Language } from './i18n';
 import { LEVELS } from './levels';
 import { Maze } from './maze';
 import { MazeView } from './maze-view';
@@ -19,7 +20,11 @@ const FEEDBACK_DURATION_MS = 560;
 interface GameElements {
   mazeBoard: HTMLElement;
   levelProgress: HTMLElement;
+  languageSelector: HTMLElement;
+  languageEnButton: HTMLButtonElement;
+  languageEsButton: HTMLButtonElement;
   drawingCanvas: HTMLCanvasElement;
+  drawingScanner: HTMLElement;
   clearButton: HTMLButtonElement;
   soundButton: HTMLButtonElement;
   soundIcon: HTMLElement;
@@ -43,20 +48,24 @@ export class GameController {
   private maze: Maze;
   private levelIndex = 0;
   private busy = false;
+  private language: Language = initialLanguage();
 
   constructor(elements: GameElements) {
     this.elements = elements;
     this.maze = new Maze(LEVELS[0]);
     this.mazeView = new MazeView(elements.mazeBoard);
-    this.drawingCanvas = new DrawingCanvas(elements.drawingCanvas, (drawing) => {
+    this.drawingCanvas = new DrawingCanvas(elements.drawingCanvas, elements.drawingScanner, (drawing) => {
       void this.handleDrawing(drawing);
     });
 
     elements.clearButton.addEventListener('click', () => this.drawingCanvas.clear());
     elements.soundButton.addEventListener('click', () => this.toggleSound());
     elements.restartButton.addEventListener('click', () => this.restart());
+    elements.languageEnButton.addEventListener('click', () => this.setLanguage('en'));
+    elements.languageEsButton.addEventListener('click', () => this.setLanguage('es'));
     window.addEventListener('keydown', this.handleKeyDown);
 
+    this.applyLanguage();
     this.loadLevel(0);
   }
 
@@ -85,7 +94,9 @@ export class GameController {
     }
 
     this.sound.playRecognized();
-    await this.showFeedback(DIRECTION_SYMBOL[result.direction], result.direction);
+    const word = translation(this.language).directions[result.direction];
+    this.sound.speak(word, this.language);
+    await this.showFeedback(DIRECTION_SYMBOL[result.direction], word);
     await this.executeDirection(result.direction);
   };
 
@@ -108,7 +119,9 @@ export class GameController {
   private async runDebugDirection(direction: Direction): Promise<void> {
     this.setBusy(true);
     this.sound.playRecognized();
-    await this.showFeedback(DIRECTION_SYMBOL[direction], direction);
+    const word = translation(this.language).directions[direction];
+    this.sound.speak(word, this.language);
+    await this.showFeedback(DIRECTION_SYMBOL[direction], word);
     await this.executeDirection(direction);
   }
 
@@ -116,7 +129,7 @@ export class GameController {
     const path = this.maze.moveUntilBlocked(direction);
 
     if (path.length === 0) {
-      this.sound.playBump();
+      this.sound.playBump(this.language);
       await this.mazeView.bump(direction);
       this.setBusy(false);
       return;
@@ -178,7 +191,7 @@ export class GameController {
     });
     this.elements.levelProgress.setAttribute(
       'aria-label',
-      `Level ${this.levelIndex + 1} of ${LEVELS.length}`,
+      translation(this.language).levelProgress(this.levelIndex + 1, LEVELS.length),
     );
   }
 
@@ -191,7 +204,36 @@ export class GameController {
   private toggleSound(): void {
     const muted = this.sound.toggleMuted();
     this.elements.soundIcon.textContent = muted ? '🔇' : '🔊';
-    this.elements.soundButton.setAttribute('aria-label', muted ? 'Turn sound on' : 'Mute sound');
+    const text = translation(this.language);
+    this.elements.soundButton.setAttribute('aria-label', muted ? text.turnSoundOn : text.muteSound);
+  }
+
+  private setLanguage(language: Language): void {
+    if (this.language === language) {
+      return;
+    }
+    this.language = language;
+    window.localStorage.setItem('kidmaze-language', language);
+    this.applyLanguage();
+    this.renderProgress();
+  }
+
+  private applyLanguage(): void {
+    const text = translation(this.language);
+    document.documentElement.lang = this.language;
+    this.elements.languageEnButton.setAttribute('aria-pressed', String(this.language === 'en'));
+    this.elements.languageEsButton.setAttribute('aria-pressed', String(this.language === 'es'));
+    this.elements.languageSelector.setAttribute('aria-label', text.languageSelector);
+    this.elements.languageEnButton.setAttribute('aria-label', text.english);
+    this.elements.languageEsButton.setAttribute('aria-label', text.spanish);
+    this.elements.drawingCanvas.setAttribute('aria-label', text.drawArrow);
+    this.elements.clearButton.setAttribute('aria-label', text.clearDrawing);
+    this.elements.soundButton.setAttribute(
+      'aria-label',
+      this.sound.isMuted ? text.turnSoundOn : text.muteSound,
+    );
+    this.elements.restartButton.setAttribute('aria-label', text.playAgain);
+    this.mazeView.setLanguage(this.language);
   }
 
   private showFinalCelebration(): void {
