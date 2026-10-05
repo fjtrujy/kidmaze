@@ -16,6 +16,8 @@ interface TranslationSet {
   turnSoundOn: string;
   enterFullscreen: string;
   exitFullscreen: string;
+  installForFullscreen: string;
+  installFullscreenInstructions: string;
   playAgain: string;
   nurse: string;
   bandageDestination: string;
@@ -41,6 +43,9 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     turnSoundOn: 'Turn sound on',
     enterFullscreen: 'Enter full screen',
     exitFullscreen: 'Exit full screen',
+    installForFullscreen: 'Open as app for full screen',
+    installFullscreenInstructions:
+      'On iPad, Safari reserves downward swipes for leaving full screen. For reliable drawing, tap Share, choose Add to Home Screen, and open Kid Maze from its Home Screen icon.',
     playAgain: 'Play again',
     nurse: 'Nurse',
     bandageDestination: 'Bandage destination',
@@ -64,6 +69,9 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     turnSoundOn: 'Activar sonido',
     enterFullscreen: 'Pantalla completa',
     exitFullscreen: 'Salir de pantalla completa',
+    installForFullscreen: 'Abrir como app a pantalla completa',
+    installFullscreenInstructions:
+      'En iPad, Safari reserva los gestos hacia abajo para salir de pantalla completa. Para dibujar sin interrupciones, pulsa Compartir, elige Añadir a pantalla de inicio y abre Kid Maze desde su icono.',
     playAgain: 'Jugar otra vez',
     nurse: 'Enfermera',
     bandageDestination: 'Destino: tirita',

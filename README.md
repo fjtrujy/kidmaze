@@ -15,6 +15,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - A large full-screen button is available alongside the drawing controls on browsers that expose the Fullscreen API.
 - The game always fits the current viewport without page scrolling; maze, drawing area, and controls compact automatically on shorter screens and when entering full screen.
 - Touch and pen gestures are locked to the game surface, preventing viewport panning, pull-to-refresh, and pinch gestures from interrupting drawing or unexpectedly leaving full screen.
+- On iPadOS, Safari reserves a downward touch gesture for leaving the Fullscreen API. Because that conflicts directly with drawing a `DOWN` arrow, Apple touch devices use the installable Home Screen web-app path instead: Share → **Add to Home Screen**. The included Web App Manifest opens Kid Maze in standalone app mode, while Chromium/Android and desktop browsers continue to use the normal Fullscreen API button.
 - The nurse keeps moving in that direction until it reaches a wall, the edge of the maze, or the bandage destination.
 - Drawing toward an adjacent wall produces a small bounce and a friendly spoken "no, no". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level.

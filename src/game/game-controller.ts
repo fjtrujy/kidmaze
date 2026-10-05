@@ -50,6 +50,16 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
+function isAppleTouchDevice(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isStandaloneWebApp(): boolean {
+  const appleNavigator = navigator as Navigator & { standalone?: boolean };
+  return window.matchMedia('(display-mode: standalone)').matches || appleNavigator.standalone === true;
+}
+
 export class GameController {
   private readonly elements: GameElements;
   private readonly recognizer = new StrokeRecognizer();
@@ -79,7 +89,9 @@ export class GameController {
     document.addEventListener('webkitfullscreenchange', this.updateFullscreenButton);
     window.addEventListener('keydown', this.handleKeyDown);
 
-    if (!this.fullscreenSupported()) {
+    if (isStandaloneWebApp()) {
+      elements.fullscreenButton.hidden = true;
+    } else if (!this.fullscreenSupported() && !isAppleTouchDevice()) {
       elements.fullscreenButton.hidden = true;
     }
 
@@ -239,6 +251,11 @@ export class GameController {
   }
 
   private async toggleFullscreen(): Promise<void> {
+    if (isAppleTouchDevice() && !isStandaloneWebApp()) {
+      window.alert(translation(this.language).installFullscreenInstructions);
+      return;
+    }
+
     const fullscreenDocument = document as FullscreenDocument;
     const root = document.documentElement as FullscreenElement;
 
@@ -262,10 +279,21 @@ export class GameController {
   private readonly updateFullscreenButton = (): void => {
     const fullscreen = this.isFullscreen();
     const text = translation(this.language);
+
+    if (isStandaloneWebApp()) {
+      this.elements.fullscreenButton.hidden = true;
+      return;
+    }
+
+    this.elements.fullscreenButton.hidden = false;
     this.elements.fullscreenButton.setAttribute('aria-pressed', String(fullscreen));
     this.elements.fullscreenButton.setAttribute(
       'aria-label',
-      fullscreen ? text.exitFullscreen : text.enterFullscreen,
+      isAppleTouchDevice()
+        ? text.installForFullscreen
+        : fullscreen
+          ? text.exitFullscreen
+          : text.enterFullscreen,
     );
   };
 
