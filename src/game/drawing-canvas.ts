@@ -32,6 +32,7 @@ export class DrawingCanvas {
     this.canvas.addEventListener('pointermove', this.handlePointerMove);
     this.canvas.addEventListener('pointerup', this.handlePointerUp);
     this.canvas.addEventListener('pointercancel', this.handlePointerCancel);
+    this.canvas.addEventListener('lostpointercapture', this.handleLostPointerCapture);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.canvas);
@@ -48,8 +49,8 @@ export class DrawingCanvas {
 
   clear(): void {
     this.cancelPendingRecognition();
-    if (this.activePointerId !== null && this.canvas.hasPointerCapture(this.activePointerId)) {
-      this.canvas.releasePointerCapture(this.activePointerId);
+    if (this.activePointerId !== null) {
+      this.releasePointerCapture(this.activePointerId);
     }
     this.activePointerId = null;
     this.strokes = [];
@@ -64,6 +65,7 @@ export class DrawingCanvas {
     this.canvas.removeEventListener('pointermove', this.handlePointerMove);
     this.canvas.removeEventListener('pointerup', this.handlePointerUp);
     this.canvas.removeEventListener('pointercancel', this.handlePointerCancel);
+    this.canvas.removeEventListener('lostpointercapture', this.handleLostPointerCapture);
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -74,7 +76,12 @@ export class DrawingCanvas {
     event.preventDefault();
     this.cancelPendingRecognition();
     this.activePointerId = event.pointerId;
-    this.canvas.setPointerCapture(event.pointerId);
+    try {
+      this.canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // Safari can reject pointer capture during a system gesture. Drawing can
+      // still continue while the pointer remains over the canvas.
+    }
     this.activeStroke = [this.eventPoint(event)];
     this.drawDot(this.activeStroke[0]);
   };
@@ -108,10 +115,11 @@ export class DrawingCanvas {
       this.drawSegment(previous, point);
     }
 
-    this.canvas.releasePointerCapture(event.pointerId);
+    const finishedStroke = [...this.activeStroke];
     this.activePointerId = null;
-    this.strokes.push([...this.activeStroke]);
     this.activeStroke = [];
+    this.releasePointerCapture(event.pointerId);
+    this.strokes.push(finishedStroke);
     this.scheduleRecognition();
   };
 
@@ -121,12 +129,28 @@ export class DrawingCanvas {
     }
 
     event.preventDefault();
-    if (this.canvas.hasPointerCapture(event.pointerId)) {
-      this.canvas.releasePointerCapture(event.pointerId);
+    this.activePointerId = null;
+    this.activeStroke = [];
+    this.releasePointerCapture(event.pointerId);
+  };
+
+  private readonly handleLostPointerCapture = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) {
+      return;
     }
     this.activePointerId = null;
     this.activeStroke = [];
   };
+
+  private releasePointerCapture(pointerId: number): void {
+    try {
+      if (this.canvas.hasPointerCapture(pointerId)) {
+        this.canvas.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // WebKit may have already released capture as part of a system gesture.
+    }
+  }
 
   private cancelActiveStroke(): void {
     this.clear();

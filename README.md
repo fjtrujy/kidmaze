@@ -17,7 +17,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - Touch and pen gestures are locked to the game surface, preventing viewport panning, pull-to-refresh, and pinch gestures from interrupting drawing or unexpectedly leaving full screen.
 - On iPadOS, Safari reserves a downward touch gesture for leaving the Fullscreen API. Because that conflicts directly with drawing a `DOWN` arrow, Apple touch devices use the installable Home Screen web-app path instead: Share → **Add to Home Screen**. The included Web App Manifest opens Kid Maze in standalone app mode, while Chromium/Android and desktop browsers continue to use the normal Fullscreen API button.
 - The nurse keeps moving in that direction until it reaches a wall, the edge of the maze, or the bandage destination.
-- Drawing toward an adjacent wall produces a small bounce and a friendly spoken "no, no". There are no penalties or lives.
+- Drawing toward an adjacent wall produces a small bounce and a friendly spoken "I can't move forward" / "No puedo avanzar". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level.
 - The arrow keys on a keyboard provide a debug control path and are not needed to play the game.
 
@@ -132,7 +132,7 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 
 English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use.
 
-Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction.
+Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked.
 
 Regenerate the voice clips with:
 

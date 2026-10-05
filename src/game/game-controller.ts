@@ -17,6 +17,7 @@ const DIRECTION_SYMBOL: Record<Direction, string> = {
 const STEP_DURATION_MS = 185;
 const FEEDBACK_DURATION_MS = 560;
 const BLOCKED_MESSAGE_DELAY_MS = 250;
+const MAX_DIRECTION_SPEECH_WAIT_MS = 1500;
 
 type FullscreenDocument = Document & {
   webkitFullscreenElement?: Element | null;
@@ -114,20 +115,25 @@ export class GameController {
     }
 
     this.setBusy(true);
-    const result = this.recognizer.recognize(drawing);
-    this.drawingCanvas.clear();
+    try {
+      const result = this.recognizer.recognize(drawing);
+      this.drawingCanvas.clear();
 
-    if (result.direction === 'UNKNOWN') {
-      await this.showFeedback('?', '');
+      if (result.direction === 'UNKNOWN') {
+        await this.showFeedback('?', '');
+        this.setBusy(false);
+        return;
+      }
+
+      this.sound.playRecognized();
+      const word = translation(this.language).directions[result.direction];
+      const directionSpeech = this.sound.playDirection(result.direction, this.language);
+      await this.showFeedback(DIRECTION_SYMBOL[result.direction], word);
+      await this.executeDirection(result.direction, directionSpeech);
+    } catch (error) {
+      console.error('Unable to process drawing.', error);
       this.setBusy(false);
-      return;
     }
-
-    this.sound.playRecognized();
-    const word = translation(this.language).directions[result.direction];
-    const directionSpeech = this.sound.playDirection(result.direction, this.language);
-    await this.showFeedback(DIRECTION_SYMBOL[result.direction], word);
-    await this.executeDirection(result.direction, directionSpeech);
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
@@ -159,7 +165,7 @@ export class GameController {
     const path = this.maze.moveUntilBlocked(direction);
 
     if (path.length === 0) {
-      await directionSpeech;
+      await Promise.race([directionSpeech, wait(MAX_DIRECTION_SPEECH_WAIT_MS)]);
       await wait(BLOCKED_MESSAGE_DELAY_MS);
       this.sound.playBump(this.language);
       await this.mazeView.bump(direction);

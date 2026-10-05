@@ -19,11 +19,14 @@ export class SoundController {
   private muted = false;
   private readonly voiceBuffers = new Map<string, AudioBuffer>();
   private activeVoice: AudioBufferSourceNode | null = null;
+  private activeVoiceCompletion: (() => void) | null = null;
 
   constructor() {
     void this.preloadVoiceClips();
-    window.addEventListener('pointerdown', this.unlock, { capture: true, once: true });
-    window.addEventListener('keydown', this.unlock, { capture: true, once: true });
+    // iPadOS can suspend Web Audio again after launch or when a Home Screen app
+    // changes lifecycle state. Retry the unlock on every real user interaction.
+    window.addEventListener('pointerdown', this.unlock, { capture: true });
+    window.addEventListener('keydown', this.unlock, { capture: true });
   }
 
   get isMuted(): boolean {
@@ -76,9 +79,23 @@ export class SoundController {
     }
     const context = this.getContext();
     if (context.state === 'suspended') {
-      void context.resume();
+      this.primeAudioContext(context);
+      void context.resume().catch((error) => {
+        console.warn('Unable to resume audio yet.', error);
+      });
     }
   };
+
+  private primeAudioContext(context: AudioContext): void {
+    try {
+      const source = context.createBufferSource();
+      source.buffer = context.createBuffer(1, 1, context.sampleRate);
+      source.connect(context.destination);
+      source.start();
+    } catch {
+      // The following interaction will retry the unlock if WebKit rejects it.
+    }
+  }
 
   private async preloadVoiceClips(): Promise<void> {
     const context = this.getContext();
@@ -100,17 +117,28 @@ export class SoundController {
     );
   }
 
-  private playVoiceClip(language: Language, clip: VoiceClip): Promise<void> {
+  private async playVoiceClip(language: Language, clip: VoiceClip): Promise<void> {
     if (this.muted) {
-      return Promise.resolve();
+      return;
     }
 
     const buffer = this.voiceBuffers.get(voiceKey(language, clip));
     if (!buffer) {
-      return Promise.resolve();
+      return;
     }
 
     const context = this.getContext();
+    if (context.state === 'suspended') {
+      try {
+        await context.resume();
+      } catch {
+        return;
+      }
+    }
+    if (context.state !== 'running') {
+      return;
+    }
+
     this.stopVoice();
     const source = context.createBufferSource();
     const gain = context.createGain();
@@ -118,15 +146,34 @@ export class SoundController {
     source.buffer = buffer;
     source.connect(gain);
     gain.connect(context.destination);
-    this.activeVoice = source;
-    source.start();
-    return new Promise((resolve) => {
-      source.onended = () => {
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      let timeoutId: number | null = null;
+      const finish = (): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
         if (this.activeVoice === source) {
           this.activeVoice = null;
+          this.activeVoiceCompletion = null;
         }
         resolve();
       };
+
+      this.activeVoice = source;
+      this.activeVoiceCompletion = finish;
+      source.onended = finish;
+      // Never let an iOS/WebKit audio lifecycle quirk keep game input locked.
+      timeoutId = window.setTimeout(finish, Math.ceil(buffer.duration * 1000) + 500);
+      try {
+        source.start();
+      } catch {
+        finish();
+      }
     });
   }
 
@@ -134,12 +181,16 @@ export class SoundController {
     if (!this.activeVoice) {
       return;
     }
+    const completion = this.activeVoiceCompletion;
+    const source = this.activeVoice;
+    this.activeVoice = null;
+    this.activeVoiceCompletion = null;
     try {
-      this.activeVoice.stop();
+      source.stop();
     } catch {
       // The source may already have ended between the check and stop call.
     }
-    this.activeVoice = null;
+    completion?.();
   }
 
   private playTone(
