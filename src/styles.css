@@ -81,9 +81,19 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-weight: 900;
   letter-spacing: -0.04em;
   color: #214c6c;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.brand:active {
+  transform: translateY(1px);
 }
 
 .brand-nurse {
@@ -237,6 +247,37 @@ button {
   animation: exit-pulse 1.4s ease-in-out infinite;
 }
 
+.maze-letter {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 58%;
+  aspect-ratio: 1;
+  border: clamp(2px, 0.3vw, 4px) solid rgb(255 255 255 / 88%);
+  border-radius: 30%;
+  background: rgb(31 69 110 / 92%);
+  box-shadow: 0 5px 10px rgb(31 69 110 / 18%);
+  color: #fff8dc;
+  font-size: clamp(18px, 4vw, 48px);
+  font-weight: 950;
+  line-height: 1;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.72);
+  transition: opacity 140ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+.maze-letter.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.exit-cell .maze-letter.is-visible {
+  background: rgb(31 69 110 / 86%);
+}
+
 .nurse {
   position: absolute;
   z-index: 5;
@@ -298,16 +339,74 @@ button {
   backdrop-filter: blur(4px);
 }
 
+.drawing-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.4vw, 18px);
+  min-width: 0;
+  padding: 0 0 clamp(8px, 1vw, 14px);
+}
+
+.mode-selector {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgb(90 167 180 / 14%);
+}
+
+.mode-button {
+  display: grid;
+  place-items: center;
+  min-width: clamp(38px, 4.6vw, 54px);
+  height: clamp(34px, 4vw, 46px);
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #427f91;
+  font-size: clamp(21px, 2.8vw, 34px);
+  font-weight: 950;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.mode-button-letters {
+  font-size: clamp(12px, 1.5vw, 17px);
+  letter-spacing: -0.04em;
+}
+
+.mode-button[aria-pressed='true'] {
+  background: #fff7db;
+  box-shadow: 0 3px 0 rgb(43 99 117 / 18%);
+  color: #214c6c;
+  transform: scale(1.04);
+}
+
+.mode-button:active {
+  transform: translateY(2px);
+}
+
 .drawing-hint {
   display: flex;
+  flex: 1 1 auto;
   justify-content: center;
   gap: clamp(12px, 2.5vw, 28px);
-  padding: 0 0 clamp(8px, 1vw, 14px);
+  min-width: 0;
+  padding: 0;
   font-size: clamp(30px, 4.5vw, 58px);
   font-weight: 950;
   line-height: 1;
   color: #5aa7b4;
   opacity: 0.62;
+}
+
+.drawing-hint.is-letter-mode {
+  gap: clamp(7px, 1.2vw, 14px);
+  font-size: clamp(19px, 2.7vw, 34px);
+  letter-spacing: 0.04em;
 }
 
 .canvas-wrap {
@@ -550,6 +649,31 @@ button {
   animation: confetti-fall 1.55s var(--confetti-delay) cubic-bezier(0.15, 0.75, 0.55, 1) forwards;
 }
 
+.version-toast {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 120;
+  padding: 9px 16px;
+  border: 3px solid rgb(255 255 255 / 85%);
+  border-radius: 999px;
+  background: rgb(31 69 110 / 92%);
+  box-shadow: 0 8px 20px rgb(22 56 77 / 24%);
+  color: #fff8dc;
+  font-size: clamp(14px, 2vw, 18px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translate(-50%, -10px) scale(0.94);
+  transition: opacity 140ms ease, transform 140ms ease;
+  pointer-events: none;
+}
+
+.version-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
 @keyframes exit-pulse {
   0%, 100% { transform: scale(0.92) rotate(-4deg); }
   50% { transform: scale(1.08) rotate(4deg); }
@@ -684,9 +808,34 @@ button {
     border-radius: 28px;
   }
 
+  .drawing-header {
+    gap: 7px;
+    padding-bottom: clamp(4px, 0.8dvh, 8px);
+  }
+
+  .mode-selector {
+    padding: 3px;
+  }
+
+  .mode-button {
+    min-width: 34px;
+    height: clamp(30px, 4dvh, 36px);
+    padding: 0 7px;
+    font-size: clamp(19px, 2.8dvh, 24px);
+  }
+
+  .mode-button-letters {
+    font-size: clamp(11px, 1.7dvh, 14px);
+  }
+
   .drawing-hint {
     font-size: clamp(24px, 3.4dvh, 30px);
-    padding-bottom: clamp(4px, 0.8dvh, 8px);
+    padding: 0;
+  }
+
+  .drawing-hint.is-letter-mode {
+    gap: 6px;
+    font-size: clamp(16px, 2.4dvh, 21px);
   }
 
   .drawing-actions {
@@ -735,9 +884,29 @@ button {
     border-radius: 28px;
   }
 
-  .drawing-hint {
+  .drawing-header {
     padding-bottom: 6px;
+  }
+
+  .mode-button {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 7px;
+    font-size: 21px;
+  }
+
+  .mode-button-letters {
+    font-size: 12px;
+  }
+
+  .drawing-hint {
+    padding: 0;
     font-size: clamp(26px, 5dvh, 38px);
+  }
+
+  .drawing-hint.is-letter-mode {
+    gap: 6px;
+    font-size: clamp(17px, 3.3dvh, 22px);
   }
 
   .drawing-actions {

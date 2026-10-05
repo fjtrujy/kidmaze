@@ -1,11 +1,13 @@
 import { DrawingCanvas } from './drawing-canvas';
 import { initialLanguage, translation, type Language } from './i18n';
+import { createLetterAssignments, LETTER_ALPHABET, positionKey, walkableNeighbors, type Letter } from './letter-mode';
+import { LetterRecognizer } from './letter-recognizer';
 import { LEVELS } from './levels';
 import { Maze } from './maze';
 import { MazeView } from './maze-view';
 import { SoundController } from './sound';
 import { StrokeRecognizer } from './stroke-recognizer';
-import type { Direction, Drawing } from './types';
+import type { Direction, Drawing, GameMode } from './types';
 
 const DIRECTION_SYMBOL: Record<Direction, string> = {
   UP: '↑',
@@ -34,6 +36,10 @@ interface GameElements {
   languageSelector: HTMLElement;
   languageEnButton: HTMLButtonElement;
   languageEsButton: HTMLButtonElement;
+  modeSelector: HTMLElement;
+  modeArrowsButton: HTMLButtonElement;
+  modeLettersButton: HTMLButtonElement;
+  drawingHint: HTMLElement;
   drawingCanvas: HTMLCanvasElement;
   drawingScanner: HTMLElement;
   clearButton: HTMLButtonElement;
@@ -61,9 +67,14 @@ function isStandaloneWebApp(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches || appleNavigator.standalone === true;
 }
 
+function initialGameMode(): GameMode {
+  return window.localStorage.getItem('kidmaze-mode') === 'LETTERS' ? 'LETTERS' : 'ARROWS';
+}
+
 export class GameController {
   private readonly elements: GameElements;
   private readonly recognizer = new StrokeRecognizer();
+  private readonly letterRecognizer = new LetterRecognizer();
   private readonly mazeView: MazeView;
   private readonly drawingCanvas: DrawingCanvas;
   private readonly sound = new SoundController();
@@ -71,6 +82,8 @@ export class GameController {
   private levelIndex = 0;
   private busy = false;
   private language: Language = initialLanguage();
+  private mode: GameMode = initialGameMode();
+  private letterAssignments: ReadonlyMap<string, Letter> = new Map();
 
   constructor(elements: GameElements) {
     this.elements = elements;
@@ -86,6 +99,8 @@ export class GameController {
     elements.restartButton.addEventListener('click', () => this.restart());
     elements.languageEnButton.addEventListener('click', () => this.setLanguage('en'));
     elements.languageEsButton.addEventListener('click', () => this.setLanguage('es'));
+    elements.modeArrowsButton.addEventListener('click', () => this.setMode('ARROWS'));
+    elements.modeLettersButton.addEventListener('click', () => this.setMode('LETTERS'));
     document.addEventListener('fullscreenchange', this.updateFullscreenButton);
     document.addEventListener('webkitfullscreenchange', this.updateFullscreenButton);
     window.addEventListener('keydown', this.handleKeyDown);
@@ -103,7 +118,9 @@ export class GameController {
   private loadLevel(index: number): void {
     this.levelIndex = index;
     this.maze = new Maze(LEVELS[index]);
+    this.letterAssignments = createLetterAssignments(this.maze.level);
     this.mazeView.render(this.maze.level, this.maze.position);
+    this.updateLetterHints();
     this.renderProgress();
     this.drawingCanvas.clear();
     this.setBusy(false);
@@ -116,8 +133,14 @@ export class GameController {
 
     this.setBusy(true);
     try {
-      const result = this.recognizer.recognize(drawing);
       this.drawingCanvas.clear();
+
+      if (this.mode === 'LETTERS') {
+        await this.handleLetterDrawing(drawing);
+        return;
+      }
+
+      const result = this.recognizer.recognize(drawing);
 
       if (result.direction === 'UNKNOWN') {
         await this.showFeedback('?', '');
@@ -137,6 +160,20 @@ export class GameController {
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (this.busy || !this.elements.finalCelebration.classList.contains('is-hidden')) {
+      return;
+    }
+
+    if (this.mode === 'LETTERS') {
+      const letter = event.key.toUpperCase() as Letter;
+      if (!LETTER_ALPHABET.includes(letter)) {
+        return;
+      }
+      event.preventDefault();
+      void this.runDebugLetter(letter);
+      return;
+    }
+
     const directions: Partial<Record<string, Direction>> = {
       ArrowUp: 'UP',
       ArrowDown: 'DOWN',
@@ -144,7 +181,7 @@ export class GameController {
       ArrowRight: 'RIGHT',
     };
     const direction = directions[event.key];
-    if (!direction || this.busy || !this.elements.finalCelebration.classList.contains('is-hidden')) {
+    if (!direction) {
       return;
     }
 
@@ -159,6 +196,49 @@ export class GameController {
     const directionSpeech = this.sound.playDirection(direction, this.language);
     await this.showFeedback(DIRECTION_SYMBOL[direction], word);
     await this.executeDirection(direction, directionSpeech);
+  }
+
+  private async runDebugLetter(letter: Letter): Promise<void> {
+    this.setBusy(true);
+    this.sound.playRecognized();
+    await this.showFeedback(letter, '');
+    await this.executeLetter(letter);
+  }
+
+  private async handleLetterDrawing(drawing: Drawing): Promise<void> {
+    const result = this.letterRecognizer.recognize(drawing);
+    if (result.letter === 'UNKNOWN') {
+      await this.showFeedback('?', '');
+      this.setBusy(false);
+      return;
+    }
+
+    this.sound.playRecognized();
+    await this.showFeedback(result.letter, '');
+    await this.executeLetter(result.letter);
+  }
+
+  private async executeLetter(letter: Letter): Promise<void> {
+    const destination = walkableNeighbors(this.maze.level, this.maze.position).find(
+      (position) => this.letterAssignments.get(positionKey(position)) === letter,
+    );
+
+    if (!destination) {
+      this.setBusy(false);
+      return;
+    }
+
+    this.maze.setPosition(destination);
+    this.mazeView.setPlayerPosition(destination);
+    await wait(STEP_DURATION_MS);
+    this.updateLetterHints();
+
+    if (this.maze.isComplete) {
+      await this.completeLevel();
+      return;
+    }
+
+    this.setBusy(false);
   }
 
   private async executeDirection(direction: Direction, directionSpeech: Promise<void>): Promise<void> {
@@ -313,6 +393,46 @@ export class GameController {
     this.renderProgress();
   }
 
+  private setMode(mode: GameMode): void {
+    if (this.mode === mode || this.busy) {
+      return;
+    }
+
+    this.mode = mode;
+    window.localStorage.setItem('kidmaze-mode', mode);
+    this.elements.finalCelebration.classList.add('is-hidden');
+    this.elements.finalCelebration.setAttribute('aria-hidden', 'true');
+    this.applyModeUI();
+    this.applyLanguage();
+    this.loadLevel(this.levelIndex);
+  }
+
+  private applyModeUI(): void {
+    const letterMode = this.mode === 'LETTERS';
+    this.elements.modeArrowsButton.setAttribute('aria-pressed', String(!letterMode));
+    this.elements.modeLettersButton.setAttribute('aria-pressed', String(letterMode));
+    this.elements.drawingHint.classList.toggle('is-letter-mode', letterMode);
+    const hints = letterMode ? LETTER_ALPHABET : ['↑', '↓', '←', '→'];
+    this.elements.drawingHint.replaceChildren(
+      ...hints.map((hint) => {
+        const span = document.createElement('span');
+        span.textContent = hint;
+        return span;
+      }),
+    );
+  }
+
+  private updateLetterHints(): void {
+    if (this.mode !== 'LETTERS') {
+      this.mazeView.setLetterHints(null, []);
+      return;
+    }
+    this.mazeView.setLetterHints(
+      this.letterAssignments,
+      walkableNeighbors(this.maze.level, this.maze.position),
+    );
+  }
+
   private applyLanguage(): void {
     const text = translation(this.language);
     document.documentElement.lang = this.language;
@@ -321,7 +441,13 @@ export class GameController {
     this.elements.languageSelector.setAttribute('aria-label', text.languageSelector);
     this.elements.languageEnButton.setAttribute('aria-label', text.english);
     this.elements.languageEsButton.setAttribute('aria-label', text.spanish);
-    this.elements.drawingCanvas.setAttribute('aria-label', text.drawArrow);
+    this.elements.modeSelector.setAttribute('aria-label', text.gameMode);
+    this.elements.modeArrowsButton.setAttribute('aria-label', text.arrowMode);
+    this.elements.modeLettersButton.setAttribute('aria-label', text.letterMode);
+    this.elements.drawingCanvas.setAttribute(
+      'aria-label',
+      this.mode === 'LETTERS' ? text.drawLetter : text.drawArrow,
+    );
     this.elements.clearButton.setAttribute('aria-label', text.clearDrawing);
     this.elements.soundButton.setAttribute(
       'aria-label',
@@ -330,6 +456,7 @@ export class GameController {
     this.updateFullscreenButton();
     this.elements.restartButton.setAttribute('aria-label', text.playAgain);
     this.mazeView.setLanguage(this.language);
+    this.applyModeUI();
   }
 
   private showFinalCelebration(): void {

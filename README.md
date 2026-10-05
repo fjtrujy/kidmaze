@@ -1,6 +1,6 @@
 # Kid Maze
 
-Kid Maze is a small educational web game for children around five years old. A child draws one of four arrows and the game turns that drawing into a command that moves a nurse through a maze toward a bandage.
+Kid Maze is a small educational web game for children around five years old. It offers an arrow mode for learning directional commands and a harder letter mode for practising recognition and handwriting while guiding a nurse through a maze toward a bandage.
 
 The project deliberately avoids a UI framework and any external recognition service. It is a static TypeScript application, so the built game can be hosted locally and does not need a backend.
 
@@ -8,16 +8,21 @@ The project deliberately avoids a UI framework and any external recognition serv
 
 - The maze is shown on the left in landscape orientation and above the drawing area in portrait orientation.
 - The child draws `UP`, `DOWN`, `LEFT`, or `RIGHT` with a pen, finger, or mouse. The drawing may contain multiple separate strokes.
+- The `↑ / ABC` selector switches between **Arrow mode** and **Letter mode**. The selected mode is remembered locally.
+- In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden.
+- Letter mode moves exactly one cell per recognized letter. This means the child can move one step forward or one step backward along the maze trail instead of sliding all the way to the next wall.
+- The initial letter set is intentionally small and visually distinct for young writers: `A`, `I`, `L`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
 - After one second without any new drawing, a one-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
 - Starting another stroke during either the idle delay or the scanner animation cancels the pending recognition and starts the timing again after that stroke finishes.
 - A recognized arrow is shown briefly as a large command before the nurse moves.
 - The child can switch between English and Spanish with the flag buttons. Recognized directions are both displayed and spoken in the selected language.
+- The application follows Semantic Versioning. `package.json` is the single source of truth for the current `X.Y.Z` version, which is injected into the production build. Tap or click the **Kid Maze** title in the top bar to reveal the running version briefly without taking permanent screen space.
 - A large full-screen button is available alongside the drawing controls on browsers that expose the Fullscreen API.
 - The game always fits the current viewport without page scrolling; maze, drawing area, and controls compact automatically on shorter screens and when entering full screen.
 - Touch and pen gestures are locked to the game surface, preventing viewport panning, pull-to-refresh, and pinch gestures from interrupting drawing or unexpectedly leaving full screen.
 - On iPadOS, Safari reserves a downward touch gesture for leaving the Fullscreen API. Because that conflicts directly with drawing a `DOWN` arrow, Apple touch devices use the installable Home Screen web-app path instead: Share → **Add to Home Screen**. The included Web App Manifest opens Kid Maze in standalone app mode, while Chromium/Android and desktop browsers continue to use the normal Fullscreen API button.
-- The nurse keeps moving in that direction until it reaches a wall, the edge of the maze, or the bandage destination.
-- Drawing toward an adjacent wall produces a small bounce and a friendly spoken "I can't move forward" / "No puedo avanzar". There are no penalties or lives.
+- In Arrow mode, the nurse keeps moving in the recognized direction until it reaches a wall, the edge of the maze, or the bandage destination.
+- In Arrow mode, drawing toward an adjacent wall produces a small bounce and a friendly spoken "I can't move forward" / "No puedo avanzar". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level.
 - The arrow keys on a keyboard provide a debug control path and are not needed to play the game.
 
@@ -32,6 +37,8 @@ src/
     drawing-timing.ts           Easy-to-tune idle and scanner timing constants
     game-controller.ts          Game flow, feedback, level transitions, and controls
     i18n.ts                     English/Spanish UI and direction translations
+    letter-mode.ts              Random cell letters and adjacent-choice rules
+    letter-recognizer.ts        Local multi-stroke uppercase letter recognizer
     levels.ts                   Hand-authored level definitions
     maze.ts                     Grid model and move-until-blocked logic
     maze-view.ts                Maze, bandage, and nurse rendering
@@ -83,7 +90,7 @@ Run the unit tests with:
 npm test
 ```
 
-The tests verify all known level solutions, blocked movement, single- and multi-stroke versions of all four arrow directions, and rejection of simple invalid drawings.
+The tests verify all known level solutions, blocked movement, single- and multi-stroke versions of all four arrow directions, the six supported handwritten letters, random letter-choice constraints, and rejection of simple invalid drawings.
 
 ## Adding a maze
 
@@ -127,6 +134,14 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 - Extremely diagonal arrows can be rejected because the game intentionally only accepts four cardinal directions.
 - A very short arrowhead, or an arrowhead almost as wide at both ends of the drawing, may not provide enough geometric contrast and can return `UNKNOWN`.
 - Geometry alone cannot cover every way a young child may draw an arrow. The thresholds are intentionally conservative so an uncertain drawing becomes a friendly retry instead of an incorrect command.
+
+## Letter mode
+
+Letter mode reuses the same multi-stroke drawing canvas and scanner timing. `LetterRecognizer` normalizes the complete drawing into a scale- and position-independent point cloud and compares it with templates for `A`, `I`, `L`, `O`, `T`, and `X`. Stroke order and direction are not significant, which lets a child build letters such as `A`, `T`, or `X` using separate pen strokes.
+
+`src/game/letter-mode.ts` assigns a random letter to every walkable cell when a level is loaded. The assignment prevents the two neighbors around any trail cell from sharing a letter, so a visible choice is always unambiguous. Only the neighboring cells are rendered with their letters; after a one-cell move the old hints disappear and the new neighboring choices are revealed.
+
+The authored mazes are simple trails with at most two walkable neighbors per cell. This is what gives Letter mode its forward/backward choice without adding junction rules. If future levels introduce branches, the Letter mode rules and UI should be revisited before shipping those levels.
 
 ## Language and speech
 

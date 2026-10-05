@@ -12,12 +12,35 @@ function requiredElement<T extends HTMLElement>(id: string): T {
 const finalCelebration = requiredElement<HTMLElement>('final-celebration');
 finalCelebration.classList.add('is-hidden');
 
+const brandButton = requiredElement<HTMLButtonElement>('brand-button');
+const versionToast = requiredElement<HTMLElement>('version-toast');
+let versionToastTimer: number | null = null;
+
+brandButton.addEventListener('click', () => {
+  if (versionToastTimer !== null) {
+    window.clearTimeout(versionToastTimer);
+  }
+
+  versionToast.textContent = `v${__APP_VERSION__}`;
+  versionToast.classList.add('is-visible');
+  versionToast.setAttribute('aria-hidden', 'false');
+  versionToastTimer = window.setTimeout(() => {
+    versionToast.classList.remove('is-visible');
+    versionToast.setAttribute('aria-hidden', 'true');
+    versionToastTimer = null;
+  }, 2200);
+});
+
 new GameController({
   mazeBoard: requiredElement('maze-board'),
   levelProgress: requiredElement('level-progress'),
   languageSelector: requiredElement('language-selector'),
   languageEnButton: requiredElement<HTMLButtonElement>('language-en'),
   languageEsButton: requiredElement<HTMLButtonElement>('language-es'),
+  modeSelector: requiredElement('mode-selector'),
+  modeArrowsButton: requiredElement<HTMLButtonElement>('mode-arrows'),
+  modeLettersButton: requiredElement<HTMLButtonElement>('mode-letters'),
+  drawingHint: requiredElement('drawing-hint'),
   drawingCanvas: requiredElement<HTMLCanvasElement>('drawing-canvas'),
   drawingScanner: requiredElement('drawing-scanner'),
   clearButton: requiredElement<HTMLButtonElement>('clear-button'),

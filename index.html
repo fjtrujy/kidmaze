@@ -19,10 +19,10 @@
     <main class="game-shell" aria-label="Kid Maze">
       <section class="maze-panel" aria-label="Maze">
         <div class="panel-topbar">
-          <div class="brand" aria-label="Kid Maze">
+          <button id="brand-button" class="brand" type="button" aria-label="Kid Maze">
             <span class="brand-nurse" aria-hidden="true">👩‍⚕️</span>
             <span class="brand-name">Kid Maze</span>
-          </div>
+          </button>
           <div class="topbar-tools">
             <div id="language-selector" class="language-selector" aria-label="Language">
               <button id="language-en" class="language-button" type="button" aria-label="English" aria-pressed="true">
@@ -43,8 +43,18 @@
 
       <section class="drawing-panel" aria-label="Drawing area">
         <div class="drawing-card">
-          <div class="drawing-hint" aria-hidden="true">
-            <span>↑</span><span>↓</span><span>←</span><span>→</span>
+          <div class="drawing-header">
+            <div id="mode-selector" class="mode-selector" aria-label="Game mode">
+              <button id="mode-arrows" class="mode-button" type="button" aria-label="Arrow mode" aria-pressed="true">
+                <span aria-hidden="true">↑</span>
+              </button>
+              <button id="mode-letters" class="mode-button mode-button-letters" type="button" aria-label="Letter mode" aria-pressed="false">
+                <span aria-hidden="true">ABC</span>
+              </button>
+            </div>
+            <div id="drawing-hint" class="drawing-hint" aria-hidden="true">
+              <span>↑</span><span>↓</span><span>←</span><span>→</span>
+            </div>
           </div>
           <div class="canvas-wrap">
             <canvas id="drawing-canvas" aria-label="Draw an arrow here"></canvas>
@@ -73,6 +83,8 @@
         </div>
       </section>
     </main>
+
+    <div id="version-toast" class="version-toast" aria-live="polite" aria-hidden="true"></div>
 
     <div id="command-feedback" class="command-feedback" aria-live="polite" aria-hidden="true">
       <div id="feedback-arrow" class="feedback-arrow" aria-hidden="true">↑</div>

@@ -1,5 +1,7 @@
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
+export type GameMode = 'ARROWS' | 'LETTERS';
+
 export interface Point {
   x: number;
   y: number;

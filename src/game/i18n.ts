@@ -11,6 +11,10 @@ interface TranslationSet {
   maze: string;
   drawingArea: string;
   drawArrow: string;
+  drawLetter: string;
+  gameMode: string;
+  arrowMode: string;
+  letterMode: string;
   clearDrawing: string;
   muteSound: string;
   turnSoundOn: string;
@@ -38,6 +42,10 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     maze: 'Maze',
     drawingArea: 'Drawing area',
     drawArrow: 'Draw an arrow here',
+    drawLetter: 'Draw the visible letter here',
+    gameMode: 'Game mode',
+    arrowMode: 'Arrow mode',
+    letterMode: 'Letter mode',
     clearDrawing: 'Clear drawing',
     muteSound: 'Mute sound',
     turnSoundOn: 'Turn sound on',
@@ -64,6 +72,10 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     maze: 'Laberinto',
     drawingArea: 'Zona de dibujo',
     drawArrow: 'Dibuja una flecha aquí',
+    drawLetter: 'Dibuja aquí la letra visible',
+    gameMode: 'Modo de juego',
+    arrowMode: 'Modo flechas',
+    letterMode: 'Modo letras',
     clearDrawing: 'Borrar dibujo',
     muteSound: 'Silenciar sonido',
     turnSoundOn: 'Activar sonido',
