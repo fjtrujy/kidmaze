@@ -31,6 +31,19 @@ new GameController({
   restartButton: requiredElement<HTMLButtonElement>('restart-button'),
 });
 
+// The game deliberately has no scrollable UI. Prevent the browser from
+// interpreting pen/finger drags as viewport panning, pull-to-refresh, or
+// pinch gestures, which can otherwise interrupt drawing or exit full screen.
+const preventViewportGesture = (event: Event): void => {
+  if (event.cancelable) {
+    event.preventDefault();
+  }
+};
+
+document.addEventListener('touchmove', preventViewportGesture, { passive: false });
+document.addEventListener('gesturestart', preventViewportGesture, { passive: false });
+document.addEventListener('gesturechange', preventViewportGesture, { passive: false });
+
 const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
 if ('serviceWorker' in navigator) {

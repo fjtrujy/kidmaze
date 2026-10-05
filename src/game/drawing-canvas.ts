@@ -31,7 +31,7 @@ export class DrawingCanvas {
     this.canvas.addEventListener('pointerdown', this.handlePointerDown);
     this.canvas.addEventListener('pointermove', this.handlePointerMove);
     this.canvas.addEventListener('pointerup', this.handlePointerUp);
-    this.canvas.addEventListener('pointercancel', this.handlePointerUp);
+    this.canvas.addEventListener('pointercancel', this.handlePointerCancel);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.canvas);
@@ -63,7 +63,7 @@ export class DrawingCanvas {
     this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
     this.canvas.removeEventListener('pointermove', this.handlePointerMove);
     this.canvas.removeEventListener('pointerup', this.handlePointerUp);
-    this.canvas.removeEventListener('pointercancel', this.handlePointerUp);
+    this.canvas.removeEventListener('pointercancel', this.handlePointerCancel);
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -113,6 +113,19 @@ export class DrawingCanvas {
     this.strokes.push([...this.activeStroke]);
     this.activeStroke = [];
     this.scheduleRecognition();
+  };
+
+  private readonly handlePointerCancel = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    if (this.canvas.hasPointerCapture(event.pointerId)) {
+      this.canvas.releasePointerCapture(event.pointerId);
+    }
+    this.activePointerId = null;
+    this.activeStroke = [];
   };
 
   private cancelActiveStroke(): void {

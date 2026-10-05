@@ -19,9 +19,14 @@ body {
   min-height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
+  position: fixed;
+  inset: 0;
   height: 100dvh;
   min-height: 100dvh;
   background:
@@ -46,6 +51,7 @@ button {
   height: 100%;
   max-height: 100dvh;
   overflow: hidden;
+  touch-action: none;
   padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
     max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   gap: clamp(12px, 2vw, 28px);
@@ -271,6 +277,7 @@ button {
 .drawing-panel {
   display: grid;
   place-items: center;
+  touch-action: none;
 }
 
 .drawing-card {
@@ -280,6 +287,7 @@ button {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  touch-action: none;
   padding: clamp(14px, 2.2vw, 28px);
   border: 5px solid rgb(255 255 255 / 75%);
   border-radius: clamp(28px, 4vw, 52px);
@@ -307,6 +315,7 @@ button {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  touch-action: none;
   border: clamp(5px, 0.8vw, 9px) solid #ffd36d;
   border-radius: clamp(22px, 3vw, 38px);
   background:
