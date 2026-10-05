@@ -1,6 +1,6 @@
 import type { ParsedMazeLevel, Position } from './types';
 
-export const LETTER_ALPHABET = ['A', 'I', 'L', 'O', 'T', 'X'] as const;
+export const LETTER_ALPHABET = ['A', 'B', 'E', 'I', 'L', 'M', 'O', 'T', 'X'] as const;
 
 export type Letter = (typeof LETTER_ALPHABET)[number];
 

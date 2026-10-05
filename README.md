@@ -11,7 +11,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - The `↑ / ABC` selector switches between **Arrow mode** and **Letter mode**. The selected mode is remembered locally.
 - In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden.
 - Letter mode moves exactly one cell per recognized letter. This means the child can move one step forward or one step backward along the maze trail instead of sliding all the way to the next wall.
-- The initial letter set is intentionally small and visually distinct for young writers: `A`, `I`, `L`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
+- The letter set is intentionally compact for young writers: `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
 - After one second without any new drawing, a one-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
 - Starting another stroke during either the idle delay or the scanner animation cancels the pending recognition and starts the timing again after that stroke finishes.
 - A recognized arrow is shown briefly as a large command before the nurse moves.
@@ -137,7 +137,7 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 
 ## Letter mode
 
-Letter mode reuses the same multi-stroke drawing canvas and scanner timing. `LetterRecognizer` normalizes the complete drawing into a scale- and position-independent point cloud and compares it with templates for `A`, `I`, `L`, `O`, `T`, and `X`. Stroke order and direction are not significant, which lets a child build letters such as `A`, `T`, or `X` using separate pen strokes.
+Letter mode reuses the same multi-stroke drawing canvas and scanner timing. `LetterRecognizer` normalizes the complete drawing into a scale- and position-independent point cloud and compares it with templates for `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Stroke order and direction are not significant, which lets a child build letters such as `A`, `B`, `E`, `M`, `T`, or `X` using separate pen strokes.
 
 `src/game/letter-mode.ts` assigns a random letter to every walkable cell when a level is loaded. The assignment prevents the two neighbors around any trail cell from sharing a letter, so a visible choice is always unambiguous. Only the neighboring cells are rendered with their letters; after a one-cell move the old hints disappear and the new neighboring choices are revealed.
 
