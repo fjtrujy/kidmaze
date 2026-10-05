@@ -95,7 +95,7 @@ export class GameController {
 
     this.sound.playRecognized();
     const word = translation(this.language).directions[result.direction];
-    this.sound.speak(word, this.language);
+    this.sound.playDirection(result.direction, this.language);
     await this.showFeedback(DIRECTION_SYMBOL[result.direction], word);
     await this.executeDirection(result.direction);
   };
@@ -120,7 +120,7 @@ export class GameController {
     this.setBusy(true);
     this.sound.playRecognized();
     const word = translation(this.language).directions[direction];
-    this.sound.speak(word, this.language);
+    this.sound.playDirection(direction, this.language);
     await this.showFeedback(DIRECTION_SYMBOL[direction], word);
     await this.executeDirection(direction);
   }

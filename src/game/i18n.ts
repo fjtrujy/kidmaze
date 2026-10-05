@@ -68,10 +68,6 @@ export function translation(language: Language): TranslationSet {
   return TRANSLATIONS[language];
 }
 
-export function speechLocale(language: Language): string {
-  return language === 'es' ? 'es-ES' : 'en-GB';
-}
-
 export function initialLanguage(): Language {
   const saved = window.localStorage.getItem('kidmaze-language');
   if (saved === 'en' || saved === 'es') {

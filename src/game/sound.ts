@@ -1,49 +1,29 @@
-import { speechLocale, type Language } from './i18n';
+import type { Language } from './i18n';
+import type { Direction } from './types';
 
-const PREFERRED_VOICE_NAMES: Record<Language, readonly string[]> = {
-  en: [
-    'Flo',
-    'Shelley',
-    'Sandy',
-    'Samantha',
-    'Serena',
-    'Kate',
-    'Moira',
-    'Fiona',
-    'Karen',
-    'Tessa',
-    'Victoria',
-    'Microsoft Sonia',
-    'Microsoft Libby',
-    'Microsoft Aria',
-    'Google UK English Female',
-  ],
-  es: [
-    'Flo',
-    'Shelley',
-    'Sandy',
-    'Mónica',
-    'Monica',
-    'Helena',
-    'Laura',
-    'Paulina',
-    'Ximena',
-    'Microsoft Elvira',
-    'Microsoft Helena',
-    'Google español',
-  ],
-};
+type VoiceClip = 'up' | 'down' | 'left' | 'right' | 'blocked';
+
+const VOICE_CLIPS: readonly VoiceClip[] = ['up', 'down', 'left', 'right', 'blocked'];
+const LANGUAGES: readonly Language[] = ['en', 'es'];
+
+function voiceKey(language: Language, clip: VoiceClip): string {
+  return `${language}:${clip}`;
+}
+
+function voiceUrl(language: Language, clip: VoiceClip): string {
+  return `${import.meta.env.BASE_URL}audio/voice/${language}/${clip}.wav`;
+}
 
 export class SoundController {
   private context: AudioContext | null = null;
   private muted = false;
-  private voices: SpeechSynthesisVoice[] = [];
+  private readonly voiceBuffers = new Map<string, AudioBuffer>();
+  private activeVoice: AudioBufferSourceNode | null = null;
 
   constructor() {
-    this.refreshVoices();
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.addEventListener('voiceschanged', this.refreshVoices);
-    }
+    void this.preloadVoiceClips();
+    window.addEventListener('pointerdown', this.unlock, { capture: true, once: true });
+    window.addEventListener('keydown', this.unlock, { capture: true, once: true });
   }
 
   get isMuted(): boolean {
@@ -52,8 +32,10 @@ export class SoundController {
 
   toggleMuted(): boolean {
     this.muted = !this.muted;
-    if (this.muted && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (this.muted) {
+      this.stopVoice();
+    } else {
+      this.unlock();
     }
     return this.muted;
   }
@@ -62,29 +44,13 @@ export class SoundController {
     this.playTone(523, 0.08, 0.05);
   }
 
-  speak(text: string, language: Language, interrupt = true): void {
-    if (this.muted || !('speechSynthesis' in window)) {
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = speechLocale(language);
-    const voice = this.preferredVoice(language);
-    if (voice) {
-      utterance.voice = voice;
-    }
-    utterance.rate = 0.84;
-    utterance.pitch = 1.12;
-    utterance.volume = 0.92;
-    if (interrupt) {
-      window.speechSynthesis.cancel();
-    }
-    window.speechSynthesis.speak(utterance);
+  playDirection(direction: Direction, language: Language): void {
+    this.playVoiceClip(language, direction.toLowerCase() as VoiceClip);
   }
 
   playBump(language: Language): void {
     this.playTone(170, 0.1, 0.055, 'triangle');
-    this.speak('No, no', language, false);
+    this.playVoiceClip(language, 'blocked');
   }
 
   playSuccess(): void {
@@ -104,50 +70,73 @@ export class SoundController {
     this.scheduleTone(context, 1976, now + 0.56, 0.12, 0.02, 'sine');
   }
 
-  private readonly refreshVoices = (): void => {
-    if (!('speechSynthesis' in window)) {
-      this.voices = [];
+  private readonly unlock = (): void => {
+    if (this.muted) {
       return;
     }
-    this.voices = window.speechSynthesis.getVoices();
+    const context = this.getContext();
+    if (context.state === 'suspended') {
+      void context.resume();
+    }
   };
 
-  private preferredVoice(language: Language): SpeechSynthesisVoice | undefined {
-    if (this.voices.length === 0) {
-      this.refreshVoices();
-    }
-
-    const locale = speechLocale(language).toLowerCase();
-    const baseLanguage = locale.split('-')[0];
-    const preferredNames = PREFERRED_VOICE_NAMES[language];
-
-    return [...this.voices]
-      .filter((voice) => voice.lang.toLowerCase().startsWith(baseLanguage))
-      .sort((a, b) => this.voiceScore(b, locale, preferredNames) - this.voiceScore(a, locale, preferredNames))[0];
+  private async preloadVoiceClips(): Promise<void> {
+    const context = this.getContext();
+    await Promise.all(
+      LANGUAGES.flatMap((language) =>
+        VOICE_CLIPS.map(async (clip) => {
+          try {
+            const response = await fetch(voiceUrl(language, clip));
+            if (!response.ok) {
+              throw new Error(`${response.status} ${response.statusText}`);
+            }
+            const audio = await context.decodeAudioData(await response.arrayBuffer());
+            this.voiceBuffers.set(voiceKey(language, clip), audio);
+          } catch (error) {
+            console.warn(`Unable to preload voice clip ${language}/${clip}.`, error);
+          }
+        }),
+      ),
+    );
   }
 
-  private voiceScore(
-    voice: SpeechSynthesisVoice,
-    locale: string,
-    preferredNames: readonly string[],
-  ): number {
-    const name = voice.name.toLowerCase();
-    const preferredIndex = preferredNames.findIndex((candidate) => name.includes(candidate.toLowerCase()));
-    let score = preferredIndex >= 0 ? 200 - preferredIndex * 5 : 0;
+  private playVoiceClip(language: Language, clip: VoiceClip): void {
+    if (this.muted) {
+      return;
+    }
 
-    if (voice.lang.toLowerCase() === locale) {
-      score += 40;
+    const buffer = this.voiceBuffers.get(voiceKey(language, clip));
+    if (!buffer) {
+      return;
     }
-    if (voice.localService) {
-      score += 8;
+
+    const context = this.getContext();
+    this.stopVoice();
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    gain.gain.value = 0.9;
+    source.buffer = buffer;
+    source.connect(gain);
+    gain.connect(context.destination);
+    source.onended = () => {
+      if (this.activeVoice === source) {
+        this.activeVoice = null;
+      }
+    };
+    this.activeVoice = source;
+    source.start();
+  }
+
+  private stopVoice(): void {
+    if (!this.activeVoice) {
+      return;
     }
-    if (/enhanced|premium|natural/.test(name)) {
-      score += 25;
+    try {
+      this.activeVoice.stop();
+    } catch {
+      // The source may already have ended between the check and stop call.
     }
-    if (/compact|espeak/.test(name)) {
-      score -= 30;
-    }
-    return score;
+    this.activeVoice = null;
   }
 
   private playTone(
@@ -166,9 +155,6 @@ export class SoundController {
   private getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
-    }
-    if (this.context.state === 'suspended') {
-      void this.context.resume();
     }
     return this.context;
   }

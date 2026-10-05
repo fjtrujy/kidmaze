@@ -126,7 +126,17 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 
 ## Language and speech
 
-English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use. Direction feedback uses the browser's Web Speech API. `SoundController` prefers a curated set of warmer, female-sounding system voices when available and falls back to the best installed voice for the selected language. The exact voice still depends on the device and browser. Muting sound also disables and cancels speech.
+English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use.
+
+Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. A blocked move says "I can't move forward" / "No puedo avanzar".
+
+Regenerate the voice clips with:
+
+```sh
+npm run voice:generate
+```
+
+The generation tool lives in `tools/generate-voice-assets.mjs`. It uses `kokoro-js` only during development and uses `espeak-phonemizer` to create the Spanish phonemes required by Kokoro. Neither dependency is bundled into the browser application; only the generated WAV files are deployed.
 
 The service worker is only registered on deployed production hosts. Localhost explicitly unregisters old Kid Maze service workers and clears their caches so `vite preview` cannot get stuck serving an outdated `index.html` that references stale hashed JavaScript files.
 
