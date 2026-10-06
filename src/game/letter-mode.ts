@@ -4,6 +4,8 @@ export const LETTER_ALPHABET = ['A', 'B', 'E', 'I', 'L', 'M', 'O', 'T', 'X'] as 
 
 export type Letter = (typeof LETTER_ALPHABET)[number];
 
+const CONFUSABLE_LETTER_PAIRS = new Set(['I:L', 'L:I']);
+
 const NEIGHBOR_DELTAS: readonly Position[] = [
   { row: -1, col: 0 },
   { row: 1, col: 0 },
@@ -33,13 +35,19 @@ export function createLetterAssignments(
   level: ParsedMazeLevel,
   random: () => number = Math.random,
 ): ReadonlyMap<string, Letter> {
-  return createChoiceAssignments(level, LETTER_ALPHABET, random);
+  return createChoiceAssignments(
+    level,
+    LETTER_ALPHABET,
+    random,
+    (left, right) => CONFUSABLE_LETTER_PAIRS.has(`${left}:${right}`),
+  );
 }
 
 export function createChoiceAssignments<T extends string>(
   level: ParsedMazeLevel,
   choices: readonly T[],
   random: () => number = Math.random,
+  conflicts: (left: T, right: T) => boolean = () => false,
 ): ReadonlyMap<string, T> {
   const assignments = new Map<string, T>();
 
@@ -54,12 +62,12 @@ export function createChoiceAssignments<T extends string>(
         neighbor,
         ...walkableNeighbors(level, neighbor),
       ]);
-      const forbidden = new Set(
-        nearbyPositions
-          .map((neighbor) => assignments.get(positionKey(neighbor)))
-          .filter((choice): choice is T => choice !== undefined),
+      const nearbyChoices = nearbyPositions
+        .map((neighbor) => assignments.get(positionKey(neighbor)))
+        .filter((choice): choice is T => choice !== undefined);
+      const available = choices.filter(
+        (choice) => !nearbyChoices.some((nearby) => nearby === choice || conflicts(choice, nearby)),
       );
-      const available = choices.filter((choice) => !forbidden.has(choice));
       const choiceIndex = Math.min(available.length - 1, Math.floor(random() * available.length));
       const fallback = choices[0];
       if (!fallback) {

@@ -2,6 +2,7 @@ import { DrawingCanvas } from './drawing-canvas';
 import { initialLanguage, translation, type Language } from './i18n';
 import { createLetterAssignments, LETTER_ALPHABET, positionKey, walkableNeighbors, type Letter } from './letter-mode';
 import { LetterRecognizer } from './letter-recognizer';
+import { HandwritingRecognizer, type HandwritingSymbol } from './handwriting-recognizer';
 import { LEVELS } from './levels';
 import { Maze } from './maze';
 import { MazeView } from './maze-view';
@@ -80,6 +81,7 @@ export class GameController {
   private readonly recognizer = new StrokeRecognizer();
   private readonly letterRecognizer = new LetterRecognizer();
   private readonly numberRecognizer = new NumberRecognizer();
+  private readonly handwritingRecognizer = new HandwritingRecognizer();
   private readonly mazeView: MazeView;
   private readonly drawingCanvas: DrawingCanvas;
   private readonly sound = new SoundController();
@@ -120,6 +122,9 @@ export class GameController {
 
     this.applyLanguage();
     this.loadLevel(0);
+    if (this.mode !== 'ARROWS') {
+      void this.handwritingRecognizer.preload();
+    }
   }
 
   private loadLevel(index: number): void {
@@ -237,31 +242,57 @@ export class GameController {
   }
 
   private async handleLetterDrawing(drawing: Drawing): Promise<void> {
-    const result = this.letterRecognizer.recognize(drawing);
-    if (result.letter === 'UNKNOWN') {
+    const candidates = this.currentChoices(this.letterAssignments);
+    const mlResult = await this.handwritingRecognizer.recognize(drawing, candidates);
+    let letter: Letter | 'UNKNOWN' = mlResult.value !== 'UNKNOWN'
+      ? mlResult.value as Letter
+      : 'UNKNOWN';
+    if (letter === 'UNKNOWN') {
+      const fallback = this.letterRecognizer.recognize(drawing);
+      if (fallback.letter !== 'UNKNOWN' && candidates.includes(fallback.letter)) {
+        letter = fallback.letter;
+      }
+    }
+    if (letter === 'UNKNOWN') {
       await this.showFeedback('?', '');
       this.setBusy(false);
       return;
     }
 
     this.sound.playRecognized();
-    void this.sound.playLetter(result.letter, this.language);
-    await this.showFeedback(result.letter, '');
-    await this.executeLetter(result.letter);
+    void this.sound.playLetter(letter, this.language);
+    await this.showFeedback(letter, '');
+    await this.executeLetter(letter);
   }
 
   private async handleNumberDrawing(drawing: Drawing): Promise<void> {
-    const result = this.numberRecognizer.recognize(drawing);
-    if (result.digit === 'UNKNOWN') {
+    const candidates = this.currentChoices(this.numberAssignments);
+    const mlResult = await this.handwritingRecognizer.recognize(drawing, candidates);
+    let digit: NumberDigit | 'UNKNOWN' = mlResult.value !== 'UNKNOWN'
+      ? mlResult.value as NumberDigit
+      : 'UNKNOWN';
+    if (digit === 'UNKNOWN') {
+      const fallback = this.numberRecognizer.recognize(drawing);
+      if (fallback.digit !== 'UNKNOWN' && candidates.includes(fallback.digit)) {
+        digit = fallback.digit;
+      }
+    }
+    if (digit === 'UNKNOWN') {
       await this.showFeedback('?', '');
       this.setBusy(false);
       return;
     }
 
     this.sound.playRecognized();
-    void this.sound.playNumber(result.digit, this.language);
-    await this.showFeedback(result.digit, '');
-    await this.executeNumber(result.digit);
+    void this.sound.playNumber(digit, this.language);
+    await this.showFeedback(digit, '');
+    await this.executeNumber(digit);
+  }
+
+  private currentChoices<T extends HandwritingSymbol>(assignments: ReadonlyMap<string, T>): T[] {
+    return walkableNeighbors(this.maze.level, this.maze.position)
+      .map((position) => assignments.get(positionKey(position)))
+      .filter((choice): choice is T => choice !== undefined);
   }
 
   private async executeLetter(letter: Letter): Promise<void> {
@@ -459,6 +490,9 @@ export class GameController {
     this.applyModeUI();
     this.applyLanguage();
     this.loadLevel(this.levelIndex);
+    if (mode !== 'ARROWS') {
+      void this.handwritingRecognizer.preload();
+    }
   }
 
   private applyModeUI(): void {

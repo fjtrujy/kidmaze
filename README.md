@@ -1,6 +1,6 @@
 # Kid Maze
 
-Kid Maze is a small educational web game for children around five years old. It offers an arrow mode for learning directional commands and a harder letter mode for practising recognition and handwriting while guiding a nurse through a maze toward a bandage.
+Kid Maze is a small educational web game for children around five years old. It offers an arrow mode for learning directional commands plus harder letter and number modes for practising recognition and handwriting while guiding a nurse through a maze toward a bandage.
 
 The project deliberately avoids a UI framework and any external recognition service. It is a static TypeScript application, so the built game can be hosted locally and does not need a backend.
 
@@ -9,7 +9,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - The maze is shown on the left in landscape orientation and above the drawing area in portrait orientation.
 - The child draws `UP`, `DOWN`, `LEFT`, or `RIGHT` with a pen, finger, or mouse. The drawing may contain multiple separate strokes.
 - The `↑ / ABC / 123` selector switches between **Arrow mode**, **Letter mode**, and **Number mode**. The selected mode is remembered locally.
-- In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden. Recognized letters are also spoken in the selected language using the bundled Kokoro voice clips.
+- In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden. Recognized letters are also spoken in the selected language.
 - Letter mode moves exactly one cell per recognized letter. This means the child can move one step forward or one step backward along the maze trail instead of sliding all the way to the next wall.
 - The letter set is intentionally compact for young writers: `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
 - Number mode follows exactly the same one-cell rules as Letter mode, but uses the digits `0` through `9`. Only adjacent digits are visible and every recognized number is spoken in the selected language.
@@ -39,9 +39,10 @@ src/
     game-controller.ts          Game flow, feedback, level transitions, and controls
     i18n.ts                     English/Spanish UI and direction translations
     letter-mode.ts              Random cell letters and adjacent-choice rules
-    letter-recognizer.ts        Local multi-stroke uppercase letter recognizer
+    handwriting-recognizer.ts  Lazy local ONNX handwriting classifier for letters/numbers
+    letter-recognizer.ts        Geometric uppercase-letter fallback recognizer
     number-mode.ts              Random cell numbers using the same choice rules
-    number-recognizer.ts        Local handwritten digit recognizer
+    number-recognizer.ts        Geometric handwritten-digit fallback recognizer
     symbol-recognizer.ts        Shared point-cloud template recognition engine
     levels.ts                   Hand-authored level definitions
     maze.ts                     Grid model and move-until-blocked logic
@@ -50,7 +51,10 @@ src/
     stroke-recognizer.ts        Local four-direction arrow recognizer
     types.ts                    Shared types
 public/
+  models/                       Compact handwritten-symbol ONNX model
   sw.js                         Lightweight offline cache
+tools/
+  train-symbol-model.py         Reproducible EMNIST training/export script
 ```
 
 ## Run locally
@@ -139,17 +143,34 @@ The arrowhead normally creates much more side-to-side spread than the tail. The 
 - A very short arrowhead, or an arrowhead almost as wide at both ends of the drawing, may not provide enough geometric contrast and can return `UNKNOWN`.
 - Geometry alone cannot cover every way a young child may draw an arrow. The thresholds are intentionally conservative so an uncertain drawing becomes a friendly retry instead of an incorrect command.
 
-## Letter mode
+## Letter and number handwriting recognition
 
-Letter mode reuses the same multi-stroke drawing canvas and scanner timing. `LetterRecognizer` normalizes the complete drawing into a scale- and position-independent point cloud and compares it with templates for `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Stroke order and direction are not significant, which lets a child build letters such as `A`, `B`, `E`, `M`, `T`, or `X` using separate pen strokes.
+Letter and Number modes use a compact convolutional neural network trained on the EMNIST Balanced handwritten-character dataset. The browser runs the exported `public/models/kidmaze-symbols.onnx` model locally through ONNX Runtime Web's WebAssembly backend. No drawing is uploaded and recognition continues to work offline once the runtime and model have been cached.
+
+The ML runtime is loaded lazily: opening Kid Maze in Arrow mode does not fetch ONNX Runtime, its WASM binary, or the model. They are requested only after the child switches to `ABC` or `123`. If WebAssembly/model initialization fails on a device, Kid Maze automatically falls back to the original geometric `LetterRecognizer` / `NumberRecognizer` instead of disabling those modes.
+
+Before inference, the multi-stroke vector drawing is rasterized to a centered 28×28 grayscale image matching the EMNIST training representation. The model contains only Kid Maze's 19 symbols (`0`–`9` plus `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, `X`), which keeps the ONNX file around 250 KB.
+
+Recognition also uses the maze context. A child never needs to distinguish all 19 classes at once: only the one or two symbols on currently reachable neighboring cells are valid. The model logits are therefore filtered to the current mode and then compared only between those visible choices, with confidence thresholds rejecting ambiguous drawings. On the held-out EMNIST test set the current model scores about 96.6% after mode filtering; pairwise choice accuracy is about 99.9% for digits and 99.1% for the supported letters. `I` and `L` are the remaining difficult pair, so the assignment generator deliberately prevents them from being the two simultaneous visible choices.
+
+The training pipeline is reproducible with:
+
+```sh
+python -m pip install torch torchvision onnx
+python tools/train-symbol-model.py
+```
+
+The training dataset itself is downloaded into ignored `.cache/emnist/`; only the exported ONNX model is committed and deployed.
+
+### Letter mode
 
 `src/game/letter-mode.ts` assigns a random letter to every walkable cell when a level is loaded. The assignment prevents the two neighbors around any trail cell from sharing a letter, so a visible choice is always unambiguous. Only the neighboring cells are rendered with their letters; after a one-cell move the old hints disappear and the new neighboring choices are revealed.
 
 The authored mazes are simple trails with at most two walkable neighbors per cell. This is what gives Letter mode its forward/backward choice without adding junction rules. If future levels introduce branches, the Letter mode rules and UI should be revisited before shipping those levels.
 
-## Number mode
+### Number mode
 
-Number mode mirrors Letter mode using all ten decimal digits, `0` through `9`. `NumberRecognizer` uses the same shared point-cloud template engine, including multi-stroke drawings such as an open `4` or a two-loop `8`. A fresh random digit is assigned to each walkable cell when a level starts, neighboring options stay distinct, and a recognized digit moves the nurse exactly one cell.
+Number mode mirrors Letter mode using all ten decimal digits, `0` through `9`. A fresh random digit is assigned to each walkable cell when a level starts, neighboring options stay distinct, and a recognized digit moves the nurse exactly one cell.
 
 Each digit is also available as a bundled bilingual speech clip (`zero` / `cero`, `one` / `uno`, and so on), so Number mode has the same spoken reinforcement as Letter mode and remains fully offline after the assets are cached.
 
@@ -171,4 +192,4 @@ Kokoro exposes several female English voices, so the English voice can still be 
 
 The service worker is only registered on deployed production hosts. Localhost explicitly unregisters old Kid Maze service workers and clears their caches so `vite preview` cannot get stuck serving an outdated `index.html` that references stale hashed JavaScript files.
 
-These constraints are isolated inside `src/game/stroke-recognizer.ts`, so the recognizer can later be replaced or augmented without changing the maze or game controller.
+Arrow recognition remains isolated inside `src/game/stroke-recognizer.ts`; the ML handwriting path is isolated inside `src/game/handwriting-recognizer.ts`. This keeps direction recognition independent from the letter/number classifier.

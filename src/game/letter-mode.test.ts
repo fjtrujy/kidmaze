@@ -42,5 +42,29 @@ describe('letter mode', () => {
       }
     }
   });
+
+  it('never presents I and L as neighboring choices at the same position', () => {
+    for (const definition of LEVELS) {
+      const level = parseLevel(definition);
+      let state = 0x5eed;
+      const random = (): number => {
+        state = (state * 1664525 + 1013904223) >>> 0;
+        return state / 0x100000000;
+      };
+      const assignments = createLetterAssignments(level, random);
+
+      for (let row = 0; row < level.rows; row += 1) {
+        for (let col = 0; col < level.cols; col += 1) {
+          if (!level.walkable[row]?.[col]) {
+            continue;
+          }
+          const choices = walkableNeighbors(level, { row, col })
+            .map((neighbor) => assignments.get(positionKey(neighbor)))
+            .filter((letter): letter is NonNullable<typeof letter> => letter !== undefined);
+          expect(choices.includes('I') && choices.includes('L')).toBe(false);
+        }
+      }
+    }
+  });
 });
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kidmaze-v3';
+const CACHE_NAME = 'kidmaze-v4';
 const APP_SHELL = ['./', './index.html'];
 const IS_LOCALHOST = ['localhost', '127.0.0.1', '::1'].includes(self.location.hostname);
 
