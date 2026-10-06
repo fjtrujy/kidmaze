@@ -1,9 +1,11 @@
 import type { Language } from './i18n';
 import { LETTER_ALPHABET, type Letter } from './letter-mode';
+import { NUMBER_DIGITS, type NumberDigit } from './number-mode';
 import type { Direction } from './types';
 
 type LetterVoiceClip = `letter_${Lowercase<Letter>}`;
-type VoiceClip = 'up' | 'down' | 'left' | 'right' | 'blocked' | LetterVoiceClip;
+type NumberVoiceClip = `number_${NumberDigit}`;
+type VoiceClip = 'up' | 'down' | 'left' | 'right' | 'blocked' | LetterVoiceClip | NumberVoiceClip;
 
 const VOICE_CLIPS: readonly VoiceClip[] = [
   'up',
@@ -12,6 +14,7 @@ const VOICE_CLIPS: readonly VoiceClip[] = [
   'right',
   'blocked',
   ...LETTER_ALPHABET.map((letter) => `letter_${letter.toLowerCase()}` as LetterVoiceClip),
+  ...NUMBER_DIGITS.map((digit) => `number_${digit}` as NumberVoiceClip),
 ];
 const LANGUAGES: readonly Language[] = ['en', 'es'];
 
@@ -62,6 +65,10 @@ export class SoundController {
 
   playLetter(letter: Letter, language: Language): Promise<void> {
     return this.playVoiceClip(language, `letter_${letter.toLowerCase()}` as LetterVoiceClip);
+  }
+
+  playNumber(digit: NumberDigit, language: Language): Promise<void> {
+    return this.playVoiceClip(language, `number_${digit}` as NumberVoiceClip);
   }
 
   playBump(language: Language): void {

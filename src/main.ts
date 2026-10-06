@@ -40,6 +40,7 @@ new GameController({
   modeSelector: requiredElement('mode-selector'),
   modeArrowsButton: requiredElement<HTMLButtonElement>('mode-arrows'),
   modeLettersButton: requiredElement<HTMLButtonElement>('mode-letters'),
+  modeNumbersButton: requiredElement<HTMLButtonElement>('mode-numbers'),
   drawingHint: requiredElement('drawing-hint'),
   drawingCanvas: requiredElement<HTMLCanvasElement>('drawing-canvas'),
   drawingScanner: requiredElement('drawing-scanner'),

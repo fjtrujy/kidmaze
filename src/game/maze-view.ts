@@ -1,6 +1,6 @@
 import type { Direction, ParsedMazeLevel, Position } from './types';
 import { translation, type Language } from './i18n';
-import { positionKey, type Letter } from './letter-mode';
+import { positionKey } from './letter-mode';
 
 function samePosition(a: Position, b: Position): boolean {
   return a.row === b.row && a.col === b.col;
@@ -14,7 +14,7 @@ export class MazeView {
   private readonly board: HTMLElement;
   private player: HTMLElement | null = null;
   private exit: HTMLElement | null = null;
-  private readonly letterLabels = new Map<string, HTMLElement>();
+  private readonly choiceLabels = new Map<string, HTMLElement>();
   private rows = 1;
   private cols = 1;
   private language: Language = 'en';
@@ -28,7 +28,7 @@ export class MazeView {
     this.cols = level.cols;
     this.board.replaceChildren();
     this.exit = null;
-    this.letterLabels.clear();
+    this.choiceLabels.clear();
     this.board.style.setProperty('--maze-rows', String(level.rows));
     this.board.style.setProperty('--maze-cols', String(level.cols));
     this.board.style.aspectRatio = `${level.cols} / ${level.rows}`;
@@ -49,11 +49,11 @@ export class MazeView {
         }
 
         if (level.walkable[row]?.[col]) {
-          const letter = document.createElement('span');
-          letter.className = 'maze-letter';
-          letter.setAttribute('aria-hidden', 'true');
-          cell.append(letter);
-          this.letterLabels.set(positionKey(position), letter);
+          const choice = document.createElement('span');
+          choice.className = 'maze-choice';
+          choice.setAttribute('aria-hidden', 'true');
+          cell.append(choice);
+          this.choiceLabels.set(positionKey(position), choice);
         }
 
         this.board.append(cell);
@@ -85,15 +85,15 @@ export class MazeView {
     this.player.style.top = `${(position.row / this.rows) * 100}%`;
   }
 
-  setLetterHints(
-    assignments: ReadonlyMap<string, Letter> | null,
+  setChoiceHints(
+    assignments: ReadonlyMap<string, string> | null,
     visiblePositions: readonly Position[],
   ): void {
     const visible = new Set(visiblePositions.map(positionKey));
-    this.letterLabels.forEach((element, key) => {
-      const letter = assignments?.get(key);
-      const shouldShow = Boolean(letter && visible.has(key));
-      element.textContent = shouldShow ? letter ?? '' : '';
+    this.choiceLabels.forEach((element, key) => {
+      const choice = assignments?.get(key);
+      const shouldShow = Boolean(choice && visible.has(key));
+      element.textContent = shouldShow ? choice ?? '' : '';
       element.classList.toggle('is-visible', shouldShow);
     });
   }

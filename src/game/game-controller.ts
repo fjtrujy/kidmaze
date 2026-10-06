@@ -5,6 +5,8 @@ import { LetterRecognizer } from './letter-recognizer';
 import { LEVELS } from './levels';
 import { Maze } from './maze';
 import { MazeView } from './maze-view';
+import { createNumberAssignments, NUMBER_DIGITS, type NumberDigit } from './number-mode';
+import { NumberRecognizer } from './number-recognizer';
 import { SoundController } from './sound';
 import { StrokeRecognizer } from './stroke-recognizer';
 import type { Direction, Drawing, GameMode } from './types';
@@ -39,6 +41,7 @@ interface GameElements {
   modeSelector: HTMLElement;
   modeArrowsButton: HTMLButtonElement;
   modeLettersButton: HTMLButtonElement;
+  modeNumbersButton: HTMLButtonElement;
   drawingHint: HTMLElement;
   drawingCanvas: HTMLCanvasElement;
   drawingScanner: HTMLElement;
@@ -68,13 +71,15 @@ function isStandaloneWebApp(): boolean {
 }
 
 function initialGameMode(): GameMode {
-  return window.localStorage.getItem('kidmaze-mode') === 'LETTERS' ? 'LETTERS' : 'ARROWS';
+  const saved = window.localStorage.getItem('kidmaze-mode');
+  return saved === 'LETTERS' || saved === 'NUMBERS' ? saved : 'ARROWS';
 }
 
 export class GameController {
   private readonly elements: GameElements;
   private readonly recognizer = new StrokeRecognizer();
   private readonly letterRecognizer = new LetterRecognizer();
+  private readonly numberRecognizer = new NumberRecognizer();
   private readonly mazeView: MazeView;
   private readonly drawingCanvas: DrawingCanvas;
   private readonly sound = new SoundController();
@@ -84,6 +89,7 @@ export class GameController {
   private language: Language = initialLanguage();
   private mode: GameMode = initialGameMode();
   private letterAssignments: ReadonlyMap<string, Letter> = new Map();
+  private numberAssignments: ReadonlyMap<string, NumberDigit> = new Map();
 
   constructor(elements: GameElements) {
     this.elements = elements;
@@ -101,6 +107,7 @@ export class GameController {
     elements.languageEsButton.addEventListener('click', () => this.setLanguage('es'));
     elements.modeArrowsButton.addEventListener('click', () => this.setMode('ARROWS'));
     elements.modeLettersButton.addEventListener('click', () => this.setMode('LETTERS'));
+    elements.modeNumbersButton.addEventListener('click', () => this.setMode('NUMBERS'));
     document.addEventListener('fullscreenchange', this.updateFullscreenButton);
     document.addEventListener('webkitfullscreenchange', this.updateFullscreenButton);
     window.addEventListener('keydown', this.handleKeyDown);
@@ -119,8 +126,9 @@ export class GameController {
     this.levelIndex = index;
     this.maze = new Maze(LEVELS[index]);
     this.letterAssignments = createLetterAssignments(this.maze.level);
+    this.numberAssignments = createNumberAssignments(this.maze.level);
     this.mazeView.render(this.maze.level, this.maze.position);
-    this.updateLetterHints();
+    this.updateChoiceHints();
     this.renderProgress();
     this.drawingCanvas.clear();
     this.setBusy(false);
@@ -137,6 +145,10 @@ export class GameController {
 
       if (this.mode === 'LETTERS') {
         await this.handleLetterDrawing(drawing);
+        return;
+      }
+      if (this.mode === 'NUMBERS') {
+        await this.handleNumberDrawing(drawing);
         return;
       }
 
@@ -174,6 +186,16 @@ export class GameController {
       return;
     }
 
+    if (this.mode === 'NUMBERS') {
+      const digit = event.key as NumberDigit;
+      if (!NUMBER_DIGITS.includes(digit)) {
+        return;
+      }
+      event.preventDefault();
+      void this.runDebugNumber(digit);
+      return;
+    }
+
     const directions: Partial<Record<string, Direction>> = {
       ArrowUp: 'UP',
       ArrowDown: 'DOWN',
@@ -206,6 +228,14 @@ export class GameController {
     await this.executeLetter(letter);
   }
 
+  private async runDebugNumber(digit: NumberDigit): Promise<void> {
+    this.setBusy(true);
+    this.sound.playRecognized();
+    void this.sound.playNumber(digit, this.language);
+    await this.showFeedback(digit, '');
+    await this.executeNumber(digit);
+  }
+
   private async handleLetterDrawing(drawing: Drawing): Promise<void> {
     const result = this.letterRecognizer.recognize(drawing);
     if (result.letter === 'UNKNOWN') {
@@ -220,9 +250,31 @@ export class GameController {
     await this.executeLetter(result.letter);
   }
 
+  private async handleNumberDrawing(drawing: Drawing): Promise<void> {
+    const result = this.numberRecognizer.recognize(drawing);
+    if (result.digit === 'UNKNOWN') {
+      await this.showFeedback('?', '');
+      this.setBusy(false);
+      return;
+    }
+
+    this.sound.playRecognized();
+    void this.sound.playNumber(result.digit, this.language);
+    await this.showFeedback(result.digit, '');
+    await this.executeNumber(result.digit);
+  }
+
   private async executeLetter(letter: Letter): Promise<void> {
+    await this.executeChoice(letter, this.letterAssignments);
+  }
+
+  private async executeNumber(digit: NumberDigit): Promise<void> {
+    await this.executeChoice(digit, this.numberAssignments);
+  }
+
+  private async executeChoice<T extends string>(choice: T, assignments: ReadonlyMap<string, T>): Promise<void> {
     const destination = walkableNeighbors(this.maze.level, this.maze.position).find(
-      (position) => this.letterAssignments.get(positionKey(position)) === letter,
+      (position) => assignments.get(positionKey(position)) === choice,
     );
 
     if (!destination) {
@@ -233,7 +285,7 @@ export class GameController {
     this.maze.setPosition(destination);
     this.mazeView.setPlayerPosition(destination);
     await wait(STEP_DURATION_MS);
-    this.updateLetterHints();
+    this.updateChoiceHints();
 
     if (this.maze.isComplete) {
       await this.completeLevel();
@@ -411,10 +463,16 @@ export class GameController {
 
   private applyModeUI(): void {
     const letterMode = this.mode === 'LETTERS';
-    this.elements.modeArrowsButton.setAttribute('aria-pressed', String(!letterMode));
+    const numberMode = this.mode === 'NUMBERS';
+    this.elements.modeArrowsButton.setAttribute('aria-pressed', String(this.mode === 'ARROWS'));
     this.elements.modeLettersButton.setAttribute('aria-pressed', String(letterMode));
-    this.elements.drawingHint.classList.toggle('is-letter-mode', letterMode);
-    const hints = letterMode ? LETTER_ALPHABET : ['↑', '↓', '←', '→'];
+    this.elements.modeNumbersButton.setAttribute('aria-pressed', String(numberMode));
+    this.elements.drawingHint.classList.toggle('is-choice-mode', letterMode || numberMode);
+    const hints = letterMode
+      ? LETTER_ALPHABET
+      : numberMode
+        ? NUMBER_DIGITS
+        : ['↑', '↓', '←', '→'];
     this.elements.drawingHint.replaceChildren(
       ...hints.map((hint) => {
         const span = document.createElement('span');
@@ -424,13 +482,13 @@ export class GameController {
     );
   }
 
-  private updateLetterHints(): void {
-    if (this.mode !== 'LETTERS') {
-      this.mazeView.setLetterHints(null, []);
+  private updateChoiceHints(): void {
+    if (this.mode === 'ARROWS') {
+      this.mazeView.setChoiceHints(null, []);
       return;
     }
-    this.mazeView.setLetterHints(
-      this.letterAssignments,
+    this.mazeView.setChoiceHints(
+      this.mode === 'LETTERS' ? this.letterAssignments : this.numberAssignments,
       walkableNeighbors(this.maze.level, this.maze.position),
     );
   }
@@ -446,9 +504,14 @@ export class GameController {
     this.elements.modeSelector.setAttribute('aria-label', text.gameMode);
     this.elements.modeArrowsButton.setAttribute('aria-label', text.arrowMode);
     this.elements.modeLettersButton.setAttribute('aria-label', text.letterMode);
+    this.elements.modeNumbersButton.setAttribute('aria-label', text.numberMode);
     this.elements.drawingCanvas.setAttribute(
       'aria-label',
-      this.mode === 'LETTERS' ? text.drawLetter : text.drawArrow,
+      this.mode === 'LETTERS'
+        ? text.drawLetter
+        : this.mode === 'NUMBERS'
+          ? text.drawNumber
+          : text.drawArrow,
     );
     this.elements.clearButton.setAttribute('aria-label', text.clearDrawing);
     this.elements.soundButton.setAttribute(

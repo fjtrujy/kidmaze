@@ -33,7 +33,15 @@ export function createLetterAssignments(
   level: ParsedMazeLevel,
   random: () => number = Math.random,
 ): ReadonlyMap<string, Letter> {
-  const assignments = new Map<string, Letter>();
+  return createChoiceAssignments(level, LETTER_ALPHABET, random);
+}
+
+export function createChoiceAssignments<T extends string>(
+  level: ParsedMazeLevel,
+  choices: readonly T[],
+  random: () => number = Math.random,
+): ReadonlyMap<string, T> {
+  const assignments = new Map<string, T>();
 
   for (let row = 0; row < level.rows; row += 1) {
     for (let col = 0; col < level.cols; col += 1) {
@@ -49,11 +57,15 @@ export function createLetterAssignments(
       const forbidden = new Set(
         nearbyPositions
           .map((neighbor) => assignments.get(positionKey(neighbor)))
-          .filter((letter): letter is Letter => letter !== undefined),
+          .filter((choice): choice is T => choice !== undefined),
       );
-      const available = LETTER_ALPHABET.filter((letter) => !forbidden.has(letter));
+      const available = choices.filter((choice) => !forbidden.has(choice));
       const choiceIndex = Math.min(available.length - 1, Math.floor(random() * available.length));
-      assignments.set(positionKey(position), available[Math.max(0, choiceIndex)] ?? LETTER_ALPHABET[0]);
+      const fallback = choices[0];
+      if (!fallback) {
+        throw new Error('Choice mode requires at least one symbol.');
+      }
+      assignments.set(positionKey(position), available[Math.max(0, choiceIndex)] ?? fallback);
     }
   }
 

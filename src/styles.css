@@ -247,7 +247,7 @@ button {
   animation: exit-pulse 1.4s ease-in-out infinite;
 }
 
-.maze-letter {
+.maze-choice {
   position: absolute;
   inset: 50% auto auto 50%;
   z-index: 4;
@@ -269,12 +269,12 @@ button {
   pointer-events: none;
 }
 
-.maze-letter.is-visible {
+.maze-choice.is-visible {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
 
-.exit-cell .maze-letter.is-visible {
+.exit-cell .maze-choice.is-visible {
   background: rgb(31 69 110 / 86%);
 }
 
@@ -373,7 +373,8 @@ button {
   transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
-.mode-button-letters {
+.mode-button-letters,
+.mode-button-numbers {
   font-size: clamp(12px, 1.5vw, 17px);
   letter-spacing: -0.04em;
 }
@@ -403,7 +404,7 @@ button {
   opacity: 0.62;
 }
 
-.drawing-hint.is-letter-mode {
+.drawing-hint.is-choice-mode {
   gap: clamp(7px, 1.2vw, 14px);
   font-size: clamp(19px, 2.7vw, 34px);
   letter-spacing: 0.04em;
@@ -855,7 +856,8 @@ button {
     font-size: clamp(19px, 2.8dvh, 24px);
   }
 
-  .mode-button-letters {
+  .mode-button-letters,
+  .mode-button-numbers {
     font-size: clamp(11px, 1.7dvh, 14px);
   }
 
@@ -864,7 +866,7 @@ button {
     padding: 0;
   }
 
-  .drawing-hint.is-letter-mode {
+  .drawing-hint.is-choice-mode {
     gap: 6px;
     font-size: clamp(16px, 2.4dvh, 21px);
   }
@@ -926,7 +928,8 @@ button {
     font-size: 21px;
   }
 
-  .mode-button-letters {
+  .mode-button-letters,
+  .mode-button-numbers {
     font-size: 12px;
   }
 
@@ -935,7 +938,7 @@ button {
     font-size: clamp(26px, 5dvh, 38px);
   }
 
-  .drawing-hint.is-letter-mode {
+  .drawing-hint.is-choice-mode {
     gap: 6px;
     font-size: clamp(17px, 3.3dvh, 22px);
   }

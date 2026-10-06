@@ -12,9 +12,11 @@ interface TranslationSet {
   drawingArea: string;
   drawArrow: string;
   drawLetter: string;
+  drawNumber: string;
   gameMode: string;
   arrowMode: string;
   letterMode: string;
+  numberMode: string;
   clearDrawing: string;
   muteSound: string;
   turnSoundOn: string;
@@ -43,9 +45,11 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     drawingArea: 'Drawing area',
     drawArrow: 'Draw an arrow here',
     drawLetter: 'Draw the visible letter here',
+    drawNumber: 'Draw the visible number here',
     gameMode: 'Game mode',
     arrowMode: 'Arrow mode',
     letterMode: 'Letter mode',
+    numberMode: 'Number mode',
     clearDrawing: 'Clear drawing',
     muteSound: 'Mute sound',
     turnSoundOn: 'Turn sound on',
@@ -73,9 +77,11 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     drawingArea: 'Zona de dibujo',
     drawArrow: 'Dibuja una flecha aquí',
     drawLetter: 'Dibuja aquí la letra visible',
+    drawNumber: 'Dibuja aquí el número visible',
     gameMode: 'Modo de juego',
     arrowMode: 'Modo flechas',
     letterMode: 'Modo letras',
+    numberMode: 'Modo números',
     clearDrawing: 'Borrar dibujo',
     muteSound: 'Silenciar sonido',
     turnSoundOn: 'Activar sonido',

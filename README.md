@@ -8,10 +8,11 @@ The project deliberately avoids a UI framework and any external recognition serv
 
 - The maze is shown on the left in landscape orientation and above the drawing area in portrait orientation.
 - The child draws `UP`, `DOWN`, `LEFT`, or `RIGHT` with a pen, finger, or mouse. The drawing may contain multiple separate strokes.
-- The `↑ / ABC` selector switches between **Arrow mode** and **Letter mode**. The selected mode is remembered locally.
+- The `↑ / ABC / 123` selector switches between **Arrow mode**, **Letter mode**, and **Number mode**. The selected mode is remembered locally.
 - In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden. Recognized letters are also spoken in the selected language using the bundled Kokoro voice clips.
 - Letter mode moves exactly one cell per recognized letter. This means the child can move one step forward or one step backward along the maze trail instead of sliding all the way to the next wall.
 - The letter set is intentionally compact for young writers: `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
+- Number mode follows exactly the same one-cell rules as Letter mode, but uses the digits `0` through `9`. Only adjacent digits are visible and every recognized number is spoken in the selected language.
 - After one second without any new drawing, a one-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
 - Starting another stroke during either the idle delay or the scanner animation cancels the pending recognition and starts the timing again after that stroke finishes.
 - A recognized arrow is shown briefly as a large command before the nurse moves.
@@ -39,6 +40,9 @@ src/
     i18n.ts                     English/Spanish UI and direction translations
     letter-mode.ts              Random cell letters and adjacent-choice rules
     letter-recognizer.ts        Local multi-stroke uppercase letter recognizer
+    number-mode.ts              Random cell numbers using the same choice rules
+    number-recognizer.ts        Local handwritten digit recognizer
+    symbol-recognizer.ts        Shared point-cloud template recognition engine
     levels.ts                   Hand-authored level definitions
     maze.ts                     Grid model and move-until-blocked logic
     maze-view.ts                Maze, bandage, and nurse rendering
@@ -90,7 +94,7 @@ Run the unit tests with:
 npm test
 ```
 
-The tests verify all known level solutions, blocked movement, single- and multi-stroke versions of all four arrow directions, the six supported handwritten letters, random letter-choice constraints, and rejection of simple invalid drawings.
+The tests verify all known level solutions, blocked movement, single- and multi-stroke versions of all four arrow directions, all supported handwritten letters and digits, random adjacent-choice constraints, and rejection of simple invalid drawings.
 
 ## Adding a maze
 
@@ -143,11 +147,17 @@ Letter mode reuses the same multi-stroke drawing canvas and scanner timing. `Let
 
 The authored mazes are simple trails with at most two walkable neighbors per cell. This is what gives Letter mode its forward/backward choice without adding junction rules. If future levels introduce branches, the Letter mode rules and UI should be revisited before shipping those levels.
 
+## Number mode
+
+Number mode mirrors Letter mode using all ten decimal digits, `0` through `9`. `NumberRecognizer` uses the same shared point-cloud template engine, including multi-stroke drawings such as an open `4` or a two-loop `8`. A fresh random digit is assigned to each walkable cell when a level starts, neighboring options stay distinct, and a recognized digit moves the nurse exactly one cell.
+
+Each digit is also available as a bundled bilingual Kokoro clip (`zero` / `cero`, `one` / `uno`, and so on), so Number mode has the same spoken reinforcement as Letter mode and remains fully offline after the assets are cached.
+
 ## Language and speech
 
 English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use.
 
-Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. Directions and all supported Letter-mode letters are spoken after recognition. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked. The final-game applause is generated locally with Web Audio, so it also works offline without another media asset.
+Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. Directions, all supported Letter-mode letters, and all ten Number-mode digits are spoken after recognition. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked. The final-game applause is generated locally with Web Audio, so it also works offline without another media asset.
 
 Regenerate the voice clips with:
 
