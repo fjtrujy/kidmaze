@@ -26,6 +26,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - In Arrow mode, the nurse keeps moving in the recognized direction until it reaches a wall, the edge of the maze, or the bandage destination.
 - In Arrow mode, drawing toward an adjacent wall produces a small bounce and a friendly spoken "I can't move forward" / "No puedo avanzar". There are no penalties or lives.
 - Finishing a level triggers a short celebration and automatically opens the next level. Completing the whole game adds a burst of applause and animated `👏` emojis rising from the bottom of the screen.
+- The game contains two rounds of seven hand-authored levels. The second round uses longer trails and more direction changes while preserving the at-most-two-neighbor rule required by Letter and Number modes. The progress dots show the active seven-level round so the top bar stays compact on phones.
 - The arrow keys on a keyboard provide a debug control path and are not needed to play the game.
 
 ## Project structure

@@ -4,7 +4,7 @@ import { initialLanguage, translation, type Language } from './i18n';
 import { createLetterAssignments, LETTER_ALPHABET, positionKey, walkableNeighbors, type Letter } from './letter-mode';
 import { LetterRecognizer } from './letter-recognizer';
 import { HandwritingRecognizer, type HandwritingSymbol } from './handwriting-recognizer';
-import { LEVELS } from './levels';
+import { LEVELS, LEVELS_PER_ROUND } from './levels';
 import { Maze } from './maze';
 import { MazeView } from './maze-view';
 import { createNumberAssignments, NUMBER_DIGITS, type NumberDigit } from './number-mode';
@@ -448,7 +448,11 @@ export class GameController {
 
   private renderProgress(): void {
     this.elements.levelProgress.replaceChildren();
-    LEVELS.forEach((_, index) => {
+    const roundStart = Math.floor(this.levelIndex / LEVELS_PER_ROUND) * LEVELS_PER_ROUND;
+    const roundEnd = Math.min(roundStart + LEVELS_PER_ROUND, LEVELS.length);
+
+    LEVELS.slice(roundStart, roundEnd).forEach((_, roundIndex) => {
+      const index = roundStart + roundIndex;
       const dot = document.createElement('span');
       dot.className = 'level-dot';
       if (index < this.levelIndex) {

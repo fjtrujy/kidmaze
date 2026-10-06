@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LEVELS } from './levels';
-import { Maze } from './maze';
+import { LEVELS, LEVELS_PER_ROUND } from './levels';
+import { Maze, parseLevel } from './maze';
 import type { Direction } from './types';
 
 const SOLUTIONS: readonly (readonly Direction[])[] = [
@@ -11,9 +11,31 @@ const SOLUTIONS: readonly (readonly Direction[])[] = [
   ['RIGHT', 'UP', 'LEFT', 'UP', 'RIGHT'],
   ['RIGHT', 'DOWN', 'LEFT', 'DOWN', 'RIGHT'],
   ['RIGHT', 'DOWN', 'LEFT', 'DOWN', 'RIGHT', 'DOWN'],
+  ['RIGHT', 'DOWN', 'LEFT', 'DOWN', 'RIGHT', 'DOWN', 'LEFT'],
+  ['UP', 'RIGHT', 'DOWN', 'RIGHT', 'UP', 'RIGHT', 'DOWN', 'LEFT'],
+  ['RIGHT', 'DOWN', 'RIGHT', 'DOWN', 'LEFT', 'DOWN', 'LEFT', 'DOWN'],
+  ['UP', 'RIGHT', 'UP', 'LEFT', 'UP', 'RIGHT', 'DOWN', 'RIGHT'],
+  ['RIGHT', 'DOWN', 'LEFT', 'DOWN', 'RIGHT', 'DOWN', 'LEFT', 'DOWN'],
+  ['LEFT', 'DOWN', 'LEFT', 'DOWN', 'RIGHT', 'DOWN', 'RIGHT', 'UP', 'RIGHT'],
+  ['RIGHT', 'DOWN', 'LEFT', 'DOWN', 'RIGHT', 'UP', 'RIGHT', 'DOWN', 'LEFT', 'DOWN'],
 ];
 
 describe('Maze', () => {
+  it('ships two seven-level rounds with a harder second round', () => {
+    expect(LEVELS).toHaveLength(LEVELS_PER_ROUND * 2);
+    const firstRoundLongestSolution = Math.max(...SOLUTIONS.slice(0, LEVELS_PER_ROUND).map((solution) => solution.length));
+    const secondRoundShortestSolution = Math.min(...SOLUTIONS.slice(LEVELS_PER_ROUND).map((solution) => solution.length));
+    expect(secondRoundShortestSolution).toBeGreaterThan(firstRoundLongestSolution);
+
+    const walkableCount = (index: number): number =>
+      parseLevel(LEVELS[index]).walkable.flat().filter(Boolean).length;
+    const firstRoundLongestTrail = Math.max(...LEVELS.slice(0, LEVELS_PER_ROUND).map((_, index) => walkableCount(index)));
+    const secondRoundShortestTrail = Math.min(
+      ...LEVELS.slice(LEVELS_PER_ROUND).map((_, index) => walkableCount(index + LEVELS_PER_ROUND)),
+    );
+    expect(secondRoundShortestTrail).toBeGreaterThan(firstRoundLongestTrail);
+  });
+
   it('keeps the player in place when a wall is immediately ahead', () => {
     const maze = new Maze(LEVELS[0]);
     expect(maze.moveUntilBlocked('UP')).toEqual([]);
