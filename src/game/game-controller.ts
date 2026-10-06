@@ -201,6 +201,7 @@ export class GameController {
   private async runDebugLetter(letter: Letter): Promise<void> {
     this.setBusy(true);
     this.sound.playRecognized();
+    void this.sound.playLetter(letter, this.language);
     await this.showFeedback(letter, '');
     await this.executeLetter(letter);
   }
@@ -214,6 +215,7 @@ export class GameController {
     }
 
     this.sound.playRecognized();
+    void this.sound.playLetter(result.letter, this.language);
     await this.showFeedback(result.letter, '');
     await this.executeLetter(result.letter);
   }
@@ -462,7 +464,9 @@ export class GameController {
   private showFinalCelebration(): void {
     this.elements.finalCelebration.classList.remove('is-hidden');
     this.elements.finalCelebration.setAttribute('aria-hidden', 'false');
+    this.sound.playApplause();
     this.launchConfetti(34);
+    this.launchApplauseEmojis();
   }
 
   private restart(): void {
@@ -489,6 +493,27 @@ export class GameController {
 
     document.body.append(layer);
     window.setTimeout(() => layer.remove(), 1800);
+  }
+
+  private launchApplauseEmojis(count = 28): void {
+    const layer = document.createElement('div');
+    layer.className = 'applause-layer';
+    layer.setAttribute('aria-hidden', 'true');
+
+    for (let index = 0; index < count; index += 1) {
+      const piece = document.createElement('span');
+      piece.className = 'applause-piece';
+      piece.textContent = '👏';
+      piece.style.setProperty('--applause-x', `${3 + Math.random() * 94}vw`);
+      piece.style.setProperty('--applause-delay', `${Math.random() * 0.65}s`);
+      piece.style.setProperty('--applause-drift', `${Math.round(Math.random() * 100 - 50)}px`);
+      piece.style.setProperty('--applause-turn', `${Math.round(Math.random() * 60 - 30)}deg`);
+      piece.style.setProperty('--applause-size', `${0.8 + Math.random() * 0.7}`);
+      layer.append(piece);
+    }
+
+    document.body.append(layer);
+    window.setTimeout(() => layer.remove(), 3200);
   }
 }
 

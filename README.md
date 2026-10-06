@@ -9,7 +9,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - The maze is shown on the left in landscape orientation and above the drawing area in portrait orientation.
 - The child draws `UP`, `DOWN`, `LEFT`, or `RIGHT` with a pen, finger, or mouse. The drawing may contain multiple separate strokes.
 - The `↑ / ABC` selector switches between **Arrow mode** and **Letter mode**. The selected mode is remembered locally.
-- In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden.
+- In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden. Recognized letters are also spoken in the selected language using the bundled Kokoro voice clips.
 - Letter mode moves exactly one cell per recognized letter. This means the child can move one step forward or one step backward along the maze trail instead of sliding all the way to the next wall.
 - The letter set is intentionally compact for young writers: `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
 - After one second without any new drawing, a one-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
@@ -23,7 +23,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - On iPadOS, Safari reserves a downward touch gesture for leaving the Fullscreen API. Because that conflicts directly with drawing a `DOWN` arrow, Apple touch devices use the installable Home Screen web-app path instead: Share → **Add to Home Screen**. The included Web App Manifest opens Kid Maze in standalone app mode, while Chromium/Android and desktop browsers continue to use the normal Fullscreen API button.
 - In Arrow mode, the nurse keeps moving in the recognized direction until it reaches a wall, the edge of the maze, or the bandage destination.
 - In Arrow mode, drawing toward an adjacent wall produces a small bounce and a friendly spoken "I can't move forward" / "No puedo avanzar". There are no penalties or lives.
-- Finishing a level triggers a short celebration and automatically opens the next level.
+- Finishing a level triggers a short celebration and automatically opens the next level. Completing the whole game adds a burst of applause and animated `👏` emojis rising from the bottom of the screen.
 - The arrow keys on a keyboard provide a debug control path and are not needed to play the game.
 
 ## Project structure
@@ -147,7 +147,7 @@ The authored mazes are simple trails with at most two walkable neighbors per cel
 
 English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use.
 
-Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked.
+Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same natural female voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. Directions and all supported Letter-mode letters are spoken after recognition. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked. The final-game applause is generated locally with Web Audio, so it also works offline without another media asset.
 
 Regenerate the voice clips with:
 

@@ -1,9 +1,18 @@
 import type { Language } from './i18n';
+import { LETTER_ALPHABET, type Letter } from './letter-mode';
 import type { Direction } from './types';
 
-type VoiceClip = 'up' | 'down' | 'left' | 'right' | 'blocked';
+type LetterVoiceClip = `letter_${Lowercase<Letter>}`;
+type VoiceClip = 'up' | 'down' | 'left' | 'right' | 'blocked' | LetterVoiceClip;
 
-const VOICE_CLIPS: readonly VoiceClip[] = ['up', 'down', 'left', 'right', 'blocked'];
+const VOICE_CLIPS: readonly VoiceClip[] = [
+  'up',
+  'down',
+  'left',
+  'right',
+  'blocked',
+  ...LETTER_ALPHABET.map((letter) => `letter_${letter.toLowerCase()}` as LetterVoiceClip),
+];
 const LANGUAGES: readonly Language[] = ['en', 'es'];
 
 function voiceKey(language: Language, clip: VoiceClip): string {
@@ -51,6 +60,10 @@ export class SoundController {
     return this.playVoiceClip(language, direction.toLowerCase() as VoiceClip);
   }
 
+  playLetter(letter: Letter, language: Language): Promise<void> {
+    return this.playVoiceClip(language, `letter_${letter.toLowerCase()}` as LetterVoiceClip);
+  }
+
   playBump(language: Language): void {
     this.playTone(170, 0.1, 0.055, 'triangle');
     void this.playVoiceClip(language, 'blocked');
@@ -71,6 +84,21 @@ export class SoundController {
     });
     this.scheduleTone(context, 1568, now + 0.44, 0.15, 0.025, 'sine');
     this.scheduleTone(context, 1976, now + 0.56, 0.12, 0.02, 'sine');
+  }
+
+  playApplause(): void {
+    if (this.muted) {
+      return;
+    }
+
+    const context = this.getContext();
+    const now = context.currentTime + 0.04;
+    for (let index = 0; index < 30; index += 1) {
+      const start = now + index * 0.065 + Math.random() * 0.05;
+      const gain = 0.035 + Math.random() * 0.025;
+      const frequency = 1200 + Math.random() * 1700;
+      this.scheduleClap(context, start, gain, frequency);
+    }
   }
 
   private readonly unlock = (): void => {
@@ -232,5 +260,39 @@ export class SoundController {
     gain.connect(context.destination);
     oscillator.start(start);
     oscillator.stop(start + duration + 0.02);
+  }
+
+  private scheduleClap(
+    context: AudioContext,
+    start: number,
+    gainValue: number,
+    frequency: number,
+  ): void {
+    const duration = 0.095;
+    const frameCount = Math.ceil(context.sampleRate * duration);
+    const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+    const channel = buffer.getChannelData(0);
+
+    for (let index = 0; index < frameCount; index += 1) {
+      const progress = index / frameCount;
+      const envelope = Math.exp(-progress * 12);
+      channel[index] = (Math.random() * 2 - 1) * envelope;
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    const filter = context.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = frequency;
+    filter.Q.value = 0.75;
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(start);
+    source.stop(start + duration + 0.01);
   }
 }
