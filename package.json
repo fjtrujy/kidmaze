@@ -1,6 +1,6 @@
 {
   "name": "kidmaze",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,10 +8,11 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "voice:generate": "node tools/generate-voice-assets.mjs"
+    "voice:generate": "npm run voice:generate:en && npm run voice:generate:es",
+    "voice:generate:en": "node tools/generate-voice-assets.mjs",
+    "voice:generate:es": "sh tools/generate-spanish-voice-assets.sh"
   },
   "devDependencies": {
-    "espeak-phonemizer": "^0.2.0",
     "kokoro-js": "^1.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",

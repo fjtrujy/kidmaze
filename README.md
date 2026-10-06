@@ -151,13 +151,13 @@ The authored mazes are simple trails with at most two walkable neighbors per cel
 
 Number mode mirrors Letter mode using all ten decimal digits, `0` through `9`. `NumberRecognizer` uses the same shared point-cloud template engine, including multi-stroke drawings such as an open `4` or a two-loop `8`. A fresh random digit is assigned to each walkable cell when a level starts, neighboring options stay distinct, and a recognized digit moves the nurse exactly one cell.
 
-Each digit is also available as a bundled bilingual Kokoro clip (`zero` / `cero`, `one` / `uno`, and so on), so Number mode has the same spoken reinforcement as Letter mode and remains fully offline after the assets are cached.
+Each digit is also available as a bundled bilingual speech clip (`zero` / `cero`, `one` / `uno`, and so on), so Number mode has the same spoken reinforcement as Letter mode and remains fully offline after the assets are cached.
 
 ## Language and speech
 
 English and Spanish strings are centralized in `src/game/i18n.ts`. The selected language is remembered in local storage and defaults to the browser language on first use.
 
-Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated Kokoro WAV clips under `public/audio/voice/`, so the same voice is heard on every tablet and the game still works offline. English currently uses Kokoro `bf_emma`; Spanish uses `ef_dora`. Directions, all supported Letter-mode letters, and all ten Number-mode digits are spoken after recognition. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked. The final-game applause is generated locally with Web Audio, so it also works offline without another media asset.
+Spoken feedback does not use the browser's system text-to-speech voices. The repository contains a small set of pre-generated WAV clips under `public/audio/voice/`, so the same voice is heard on every tablet and the game still works offline. English uses Kokoro `bf_emma`; Spanish uses the MeloTTS `ES` voice at speed `1.08`, selected after an A/B comparison with the previous Kokoro Spanish voice and peak-normalized to match the listening samples. Directions, all supported Letter-mode letters, and all ten Number-mode digits are spoken after recognition. A blocked move says "I can't move forward" / "No puedo avanzar" after a short pause following the recognized direction. Web Audio is retried on each user interaction on iPadOS, and voice completion has a timeout fallback so a suspended audio context can never leave the game input locked. The final-game applause is generated locally with Web Audio, so it also works offline without another media asset.
 
 Regenerate the voice clips with:
 
@@ -165,9 +165,9 @@ Regenerate the voice clips with:
 npm run voice:generate
 ```
 
-The generation tool lives in `tools/generate-voice-assets.mjs`. It uses `kokoro-js` only during development and uses `espeak-phonemizer` to create the Spanish phonemes required by Kokoro. Neither dependency is bundled into the browser application; only the generated WAV files are deployed.
+English generation lives in `tools/generate-voice-assets.mjs` and uses `kokoro-js` only during development. Spanish generation lives in `tools/generate-spanish-voice-assets.py`; `tools/generate-spanish-voice-assets.sh` creates an ignored local Python environment on first use and installs a pinned MeloTTS revision. The wrapper uses `unidic_lite`, avoiding MeloTTS's otherwise unnecessary full Japanese dictionary download when generating Spanish. None of these generation dependencies are bundled into the browser application; only the generated WAV files are deployed.
 
-Kokoro exposes several female English voices, so `VOICES.en` in the generation tool can be changed easily. The official Kokoro Spanish catalogue currently provides only one female Spanish voice, `ef_dora`; Kokoro does not expose a separate pitch control. Making that voice noticeably higher would therefore require audio post-processing rather than simply selecting another Spanish Kokoro voice.
+Kokoro exposes several female English voices, so the English voice can still be changed easily. The Spanish assets intentionally use MeloTTS instead because its `ES` voice at speed `1.08` was preferred over Kokoro `ef_dora` during listening tests.
 
 The service worker is only registered on deployed production hosts. Localhost explicitly unregisters old Kid Maze service workers and clears their caches so `vite preview` cannot get stuck serving an outdated `index.html` that references stale hashed JavaScript files.
 
