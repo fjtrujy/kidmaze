@@ -110,6 +110,7 @@ export class GameController {
     elements.modeArrowsButton.addEventListener('click', () => this.setMode('ARROWS'));
     elements.modeLettersButton.addEventListener('click', () => this.setMode('LETTERS'));
     elements.modeNumbersButton.addEventListener('click', () => this.setMode('NUMBERS'));
+    this.installChoiceHintScroller();
     document.addEventListener('fullscreenchange', this.updateFullscreenButton);
     document.addEventListener('webkitfullscreenchange', this.updateFullscreenButton);
     window.addEventListener('keydown', this.handleKeyDown);
@@ -125,6 +126,49 @@ export class GameController {
     if (this.mode !== 'ARROWS') {
       void this.handwritingRecognizer.preload();
     }
+  }
+
+  private installChoiceHintScroller(): void {
+    const hint = this.elements.drawingHint;
+    let pointerId: number | null = null;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    hint.addEventListener('pointerdown', (event) => {
+      if (!hint.classList.contains('is-choice-mode')) {
+        return;
+      }
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startScrollLeft = hint.scrollLeft;
+      try {
+        hint.setPointerCapture(event.pointerId);
+      } catch {
+        // Safari can reject capture during unusual lifecycle transitions.
+      }
+    });
+
+    hint.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== pointerId) {
+        return;
+      }
+      hint.scrollLeft = startScrollLeft + startX - event.clientX;
+    });
+
+    const finish = (event: PointerEvent): void => {
+      if (event.pointerId !== pointerId) {
+        return;
+      }
+      pointerId = null;
+      try {
+        hint.releasePointerCapture(event.pointerId);
+      } catch {
+        // Capture may already have been released by the browser.
+      }
+    };
+    hint.addEventListener('pointerup', finish);
+    hint.addEventListener('pointercancel', finish);
+    hint.addEventListener('lostpointercapture', finish);
   }
 
   private loadLevel(index: number): void {

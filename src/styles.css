@@ -410,10 +410,15 @@ button {
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  touch-action: pan-x;
+  touch-action: none;
   scrollbar-width: none;
   font-size: clamp(19px, 2.7vw, 34px);
   letter-spacing: 0.04em;
+  cursor: grab;
+}
+
+.drawing-hint.is-choice-mode:active {
+  cursor: grabbing;
 }
 
 .drawing-hint.is-choice-mode::-webkit-scrollbar {
