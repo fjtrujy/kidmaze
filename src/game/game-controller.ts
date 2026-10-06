@@ -1,3 +1,4 @@
+import { analytics } from './analytics';
 import { DrawingCanvas } from './drawing-canvas';
 import { initialLanguage, translation, type Language } from './i18n';
 import { createLetterAssignments, LETTER_ALPHABET, positionKey, walkableNeighbors, type Letter } from './letter-mode';
@@ -123,6 +124,11 @@ export class GameController {
 
     this.applyLanguage();
     this.loadLevel(0);
+    analytics.track('game_started', {
+      mode: this.mode.toLowerCase(),
+      language: this.language,
+      app_version: __APP_VERSION__,
+    });
     if (this.mode !== 'ARROWS') {
       void this.handwritingRecognizer.preload();
     }
@@ -204,6 +210,7 @@ export class GameController {
       const result = this.recognizer.recognize(drawing);
 
       if (result.direction === 'UNKNOWN') {
+        analytics.track('recognition_failed', { mode: 'arrows' });
         await this.showFeedback('?', '');
         this.setBusy(false);
         return;
@@ -298,6 +305,10 @@ export class GameController {
       }
     }
     if (letter === 'UNKNOWN') {
+      analytics.track('recognition_failed', {
+        mode: 'letters',
+        choices: candidates.join(','),
+      });
       await this.showFeedback('?', '');
       this.setBusy(false);
       return;
@@ -322,6 +333,10 @@ export class GameController {
       }
     }
     if (digit === 'UNKNOWN') {
+      analytics.track('recognition_failed', {
+        mode: 'numbers',
+        choices: candidates.join(','),
+      });
       await this.showFeedback('?', '');
       this.setBusy(false);
       return;
@@ -397,6 +412,10 @@ export class GameController {
   }
 
   private async completeLevel(): Promise<void> {
+    analytics.track('level_completed', {
+      level: this.levelIndex + 1,
+      mode: this.mode.toLowerCase(),
+    });
     this.sound.playSuccess();
     this.launchConfetti();
     await this.mazeView.celebrate();
@@ -408,6 +427,10 @@ export class GameController {
       return;
     }
 
+    analytics.track('game_completed', {
+      mode: this.mode.toLowerCase(),
+      language: this.language,
+    });
     this.showFinalCelebration();
   }
 
@@ -518,6 +541,7 @@ export class GameController {
     }
     this.language = language;
     window.localStorage.setItem('kidmaze-language', language);
+    analytics.track('language_changed', { language });
     this.applyLanguage();
     this.renderProgress();
   }
@@ -529,6 +553,7 @@ export class GameController {
 
     this.mode = mode;
     window.localStorage.setItem('kidmaze-mode', mode);
+    analytics.track('mode_selected', { mode: mode.toLowerCase() });
     this.elements.finalCelebration.classList.add('is-hidden');
     this.elements.finalCelebration.setAttribute('aria-hidden', 'true');
     this.applyModeUI();
