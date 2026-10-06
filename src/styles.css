@@ -405,9 +405,23 @@ button {
 }
 
 .drawing-hint.is-choice-mode {
+  justify-content: safe center;
   gap: clamp(7px, 1.2vw, 14px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: none;
   font-size: clamp(19px, 2.7vw, 34px);
   letter-spacing: 0.04em;
+}
+
+.drawing-hint.is-choice-mode::-webkit-scrollbar {
+  display: none;
+}
+
+.drawing-hint.is-choice-mode > span {
+  flex: 0 0 auto;
 }
 
 .canvas-wrap {

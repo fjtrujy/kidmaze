@@ -514,6 +514,7 @@ export class GameController {
         return span;
       }),
     );
+    this.elements.drawingHint.scrollLeft = 0;
   }
 
   private updateChoiceHints(): void {
