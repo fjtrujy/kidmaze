@@ -1,4 +1,4 @@
-import { LETTER_ALPHABET, type Letter } from './letter-mode';
+import type { Letter } from './letter-mode';
 import { createSymbolRecognizer, type ShapeTemplate } from './symbol-recognizer';
 import type { Drawing } from './types';
 
@@ -9,7 +9,10 @@ export interface LetterRecognitionResult {
 
 type LetterTemplate = ShapeTemplate;
 
-const LETTER_TEMPLATES: Record<Letter, readonly LetterTemplate[]> = {
+const GEOMETRIC_LETTERS = ['A', 'B', 'E', 'I', 'L', 'M', 'O', 'T', 'X'] as const satisfies readonly Letter[];
+type GeometricLetter = (typeof GEOMETRIC_LETTERS)[number];
+
+const LETTER_TEMPLATES: Record<GeometricLetter, readonly LetterTemplate[]> = {
   A: [
     [
       [[0.12, 1], [0.5, 0]],
@@ -87,7 +90,7 @@ const LETTER_TEMPLATES: Record<Letter, readonly LetterTemplate[]> = {
   ],
 };
 
-const recognizeLetter = createSymbolRecognizer(LETTER_ALPHABET, LETTER_TEMPLATES);
+const recognizeLetter = createSymbolRecognizer(GEOMETRIC_LETTERS, LETTER_TEMPLATES);
 
 export class LetterRecognizer {
   recognize(drawing: Drawing): LetterRecognitionResult {

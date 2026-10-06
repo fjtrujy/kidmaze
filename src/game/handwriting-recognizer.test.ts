@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { rasterizeDrawingForModel, selectHandwritingCandidate } from './handwriting-recognizer';
+import { LETTER_ALPHABET } from './letter-mode';
+import { NUMBER_DIGITS } from './number-mode';
+import modelConfig from './symbol-model-config.json';
 import type { Drawing } from './types';
 
-const emptyLogits = (): number[] => Array.from({ length: 19 }, () => 0);
+const emptyLogits = (): number[] => Array.from({ length: modelConfig.labels.length }, () => 0);
 
 describe('handwriting recognizer helpers', () => {
+  it('keeps the model labels synchronized with every game symbol', () => {
+    expect(modelConfig.labels).toEqual([...NUMBER_DIGITS, ...LETTER_ALPHABET]);
+  });
+
   it('selects only among currently reachable numeric choices', () => {
     const logits = emptyLogits();
     logits[3] = 4.5;
@@ -30,6 +37,14 @@ describe('handwriting recognizer helpers', () => {
     logits[16] = 12;
 
     expect(selectHandwritingCandidate(logits, ['0']).value).toBe('0');
+  });
+
+  it('supports letters across the complete alphabet', () => {
+    const logits = emptyLogits();
+    const zIndex = modelConfig.labels.indexOf('Z');
+    logits[zIndex] = 8;
+
+    expect(selectHandwritingCandidate(logits, ['M', 'Z']).value).toBe('Z');
   });
 
   it('rasterizes multi-stroke drawings into normalized 28x28 model input', () => {

@@ -1,10 +1,16 @@
+import letterConflicts from './letter-conflicts.json';
 import type { ParsedMazeLevel, Position } from './types';
 
-export const LETTER_ALPHABET = ['A', 'B', 'E', 'I', 'L', 'M', 'O', 'T', 'X'] as const;
+export const LETTER_ALPHABET = [
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+] as const;
 
 export type Letter = (typeof LETTER_ALPHABET)[number];
 
-const CONFUSABLE_LETTER_PAIRS = new Set(['I:L', 'L:I']);
+const CONFUSABLE_LETTER_PAIRS = new Set(
+  letterConflicts.flatMap(([left, right]) => [`${left}:${right}`, `${right}:${left}`]),
+);
 
 const NEIGHBOR_DELTAS: readonly Position[] = [
   { row: -1, col: 0 },

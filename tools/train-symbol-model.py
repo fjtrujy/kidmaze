@@ -23,7 +23,9 @@ from torchvision.datasets import EMNIST
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = PROJECT_ROOT / "src" / "game" / "symbol-model-config.json"
 MODEL_PATH = PROJECT_ROOT / "public" / "models" / "kidmaze-symbols.onnx"
+CONFLICTS_PATH = PROJECT_ROOT / "src" / "game" / "letter-conflicts.json"
 DATA_ROOT = PROJECT_ROOT / ".cache" / "emnist"
+PAIR_CONFLICT_ACCURACY = 0.97
 
 config = json.loads(CONFIG_PATH.read_text())
 LABELS = config["labels"]
@@ -114,6 +116,39 @@ def evaluate(model, loader, device):
     ]
 
 
+def evaluate_letter_pairs(model, loader, device):
+    model.eval()
+    all_logits = []
+    all_labels = []
+    with torch.no_grad():
+        for images, labels in loader:
+            all_logits.append(model(images.to(device)).cpu())
+            all_labels.append(labels)
+
+    logits = torch.cat(all_logits)
+    labels = torch.cat(all_labels)
+    letter_indices = [index for index, label in enumerate(LABELS) if label.isalpha()]
+    pair_scores = []
+
+    for left_offset, left_index in enumerate(letter_indices):
+        for right_index in letter_indices[left_offset + 1 :]:
+            mask = (labels == left_index) | (labels == right_index)
+            pair_logits = logits[mask][:, [left_index, right_index]]
+            pair_labels = labels[mask]
+            predicted = pair_logits.argmax(1)
+            expected = (pair_labels == right_index).long()
+            accuracy = (predicted == expected).float().mean().item()
+            pair_scores.append((accuracy, LABELS[left_index], LABELS[right_index]))
+
+    pair_scores.sort()
+    conflicts = [
+        [left, right]
+        for accuracy, left, right in pair_scores
+        if accuracy < PAIR_CONFLICT_ACCURACY
+    ]
+    return pair_scores, conflicts
+
+
 def main():
     torch.manual_seed(2026)
     natural = NaturalOrientation()
@@ -173,6 +208,17 @@ def main():
             f"epoch {epoch}: loss={running_loss / seen:.4f} "
             f"test={accuracy * 100:.2f}%\n{scores}"
         )
+
+    pair_scores, conflicts = evaluate_letter_pairs(model, test_loader, device)
+    print("Worst letter pairs:")
+    for accuracy, left, right in pair_scores[:12]:
+        marker = " conflict" if accuracy < PAIR_CONFLICT_ACCURACY else ""
+        print(f"  {left}/{right}: {accuracy * 100:.1f}%{marker}")
+    CONFLICTS_PATH.write_text(json.dumps(conflicts, indent=2) + "\n")
+    print(
+        f"Wrote {CONFLICTS_PATH.relative_to(PROJECT_ROOT)} "
+        f"with {len(conflicts)} pairs below {PAIR_CONFLICT_ACCURACY * 100:.0f}%"
+    )
 
     model = model.to("cpu").eval()
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)

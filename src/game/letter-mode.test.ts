@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createLetterAssignments, positionKey, walkableNeighbors } from './letter-mode';
+import letterConflicts from './letter-conflicts.json';
+import { createLetterAssignments, LETTER_ALPHABET, positionKey, walkableNeighbors } from './letter-mode';
 import { LEVELS } from './levels';
 import { parseLevel } from './maze';
 
 describe('letter mode', () => {
+  it('uses the complete uppercase English alphabet', () => {
+    expect(LETTER_ALPHABET.join('')).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+  });
+
   it('assigns a letter to every walkable cell and keeps adjacent choices distinct', () => {
     for (const definition of LEVELS) {
       const level = parseLevel(definition);
@@ -43,7 +48,7 @@ describe('letter mode', () => {
     }
   });
 
-  it('never presents I and L as neighboring choices at the same position', () => {
+  it('never presents model-derived confusing pairs as neighboring choices', () => {
     for (const definition of LEVELS) {
       const level = parseLevel(definition);
       let state = 0x5eed;
@@ -61,7 +66,11 @@ describe('letter mode', () => {
           const choices = walkableNeighbors(level, { row, col })
             .map((neighbor) => assignments.get(positionKey(neighbor)))
             .filter((letter): letter is NonNullable<typeof letter> => letter !== undefined);
-          expect(choices.includes('I') && choices.includes('L')).toBe(false);
+          for (const [left, right] of letterConflicts) {
+            const hasLeft = choices.some((choice) => choice === left);
+            const hasRight = choices.some((choice) => choice === right);
+            expect(hasLeft && hasRight).toBe(false);
+          }
         }
       }
     }

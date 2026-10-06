@@ -11,7 +11,7 @@ The project deliberately avoids a UI framework and any external recognition serv
 - The `↑ / ABC / 123` selector switches between **Arrow mode**, **Letter mode**, and **Number mode**. The selected mode is remembered locally.
 - In Letter mode, every walkable cell receives a random letter when the level starts. Only the one or two cells immediately connected to the nurse are allowed choices and only their letters are visible; the letter under the nurse is always hidden. Recognized letters are also spoken in the selected language.
 - Letter mode moves exactly one cell per recognized letter. This means the child can move one step forward or one step backward along the maze trail instead of sliding all the way to the next wall.
-- The letter set is intentionally compact for young writers: `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, and `X`. Neighboring choices are generated so the two visible options can never have the same letter.
+- Letter mode uses the complete uppercase alphabet `A` through `Z`. Neighboring choices are generated so the two visible options can never have the same letter or a model-derived confusing pair.
 - Number mode follows exactly the same one-cell rules as Letter mode, but uses the digits `0` through `9`. Only adjacent digits are visible and every recognized number is spoken in the selected language.
 - After one second without any new drawing, a one-second scanner animation sweeps across the drawing. The accumulated strokes are interpreted as one command when the scan finishes.
 - Starting another stroke during either the idle delay or the scanner animation cancels the pending recognition and starts the timing again after that stroke finishes.
@@ -38,9 +38,10 @@ src/
     drawing-timing.ts           Easy-to-tune idle and scanner timing constants
     game-controller.ts          Game flow, feedback, level transitions, and controls
     i18n.ts                     English/Spanish UI and direction translations
-    letter-mode.ts              Random cell letters and adjacent-choice rules
+    letter-conflicts.json       Model-derived letter pairs never shown together
+    letter-mode.ts              Random A-Z letters and adjacent-choice rules
     handwriting-recognizer.ts  Lazy local ONNX handwriting classifier for letters/numbers
-    letter-recognizer.ts        Geometric uppercase-letter fallback recognizer
+    letter-recognizer.ts        Geometric fallback for the original letter subset
     number-mode.ts              Random cell numbers using the same choice rules
     number-recognizer.ts        Geometric handwritten-digit fallback recognizer
     symbol-recognizer.ts        Shared point-cloud template recognition engine
@@ -149,9 +150,9 @@ Letter and Number modes use a compact convolutional neural network trained on th
 
 The ML runtime is loaded lazily: opening Kid Maze in Arrow mode does not fetch ONNX Runtime, its WASM binary, or the model. They are requested only after the child switches to `ABC` or `123`. If WebAssembly/model initialization fails on a device, Kid Maze automatically falls back to the original geometric `LetterRecognizer` / `NumberRecognizer` instead of disabling those modes.
 
-Before inference, the multi-stroke vector drawing is rasterized to a centered 28×28 grayscale image matching the EMNIST training representation. The model contains only Kid Maze's 19 symbols (`0`–`9` plus `A`, `B`, `E`, `I`, `L`, `M`, `O`, `T`, `X`), which keeps the ONNX file around 250 KB.
+Before inference, the multi-stroke vector drawing is rasterized to a centered 28×28 grayscale image matching the EMNIST training representation. The model contains Kid Maze's 36 symbols (`0`–`9` plus uppercase `A`–`Z`) and still remains only about 250 KB.
 
-Recognition also uses the maze context. A child never needs to distinguish all 19 classes at once: only the one or two symbols on currently reachable neighboring cells are valid. The model logits are therefore filtered to the current mode and then compared only between those visible choices, with confidence thresholds rejecting ambiguous drawings. On the held-out EMNIST test set the current model scores about 96.6% after mode filtering; pairwise choice accuracy is about 99.9% for digits and 99.1% for the supported letters. `I` and `L` are the remaining difficult pair, so the assignment generator deliberately prevents them from being the two simultaneous visible choices.
+Recognition also uses the maze context. A child never needs to distinguish all 36 classes at once: only the one or two symbols on currently reachable neighboring cells are valid. The model logits are therefore filtered to the current mode and then compared only between those visible choices, with confidence thresholds rejecting ambiguous drawings. Training evaluates every uppercase-letter pair after the final epoch and writes pairs below the configured 97% pairwise-accuracy threshold to `src/game/letter-conflicts.json`. With the current model the guarded pairs are `I/L`, `D/O`, and `U/V`, so those combinations are never presented as the two simultaneous visible choices.
 
 The training pipeline is reproducible with:
 
@@ -164,7 +165,7 @@ The training dataset itself is downloaded into ignored `.cache/emnist/`; only th
 
 ### Letter mode
 
-`src/game/letter-mode.ts` assigns a random letter to every walkable cell when a level is loaded. The assignment prevents the two neighbors around any trail cell from sharing a letter, so a visible choice is always unambiguous. Only the neighboring cells are rendered with their letters; after a one-cell move the old hints disappear and the new neighboring choices are revealed.
+`src/game/letter-mode.ts` assigns a random uppercase letter from `A` through `Z` to every walkable cell when a level is loaded. The assignment prevents the two neighbors around any trail cell from sharing a letter or using one of the model-derived confusing pairs, so a visible choice stays practical to distinguish. Only the neighboring cells are rendered with their letters; after a one-cell move the old hints disappear and the new neighboring choices are revealed.
 
 The authored mazes are simple trails with at most two walkable neighbors per cell. This is what gives Letter mode its forward/backward choice without adding junction rules. If future levels introduce branches, the Letter mode rules and UI should be revisited before shipping those levels.
 
