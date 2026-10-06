@@ -17,4 +17,4 @@ if ! "$PYTHON" -c "import importlib.util; raise SystemExit(0 if importlib.util.f
   "$PYTHON" -m pip install "git+https://github.com/myshell-ai/MeloTTS.git@$MELOTTS_COMMIT"
 fi
 
-exec "$PYTHON" "$PROJECT_ROOT/tools/generate-spanish-voice-assets.py"
+exec "$PYTHON" "$PROJECT_ROOT/tools/generate-spanish-voice-assets.py" "$@"

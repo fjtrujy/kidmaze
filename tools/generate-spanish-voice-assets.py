@@ -33,10 +33,10 @@ CLIPS = {
     "letter_d": "De.",
     "letter_e": "E.",
     "letter_f": "Efe.",
-    "letter_g": "Ge.",
+    "letter_g": "La letra ge.",
     "letter_h": "Hache.",
     "letter_i": "I.",
-    "letter_j": "Jota.",
+    "letter_j": "La letra jota.",
     "letter_k": "Ka.",
     "letter_l": "Ele.",
     "letter_m": "Eme.",
@@ -97,11 +97,17 @@ def main() -> None:
     output_directory = project_root / "public" / "audio" / "voice" / "es"
     output_directory.mkdir(parents=True, exist_ok=True)
 
+    requested = sys.argv[1:]
+    unknown = [name for name in requested if name not in CLIPS]
+    if unknown:
+        raise SystemExit(f"Unknown Spanish voice clip(s): {', '.join(unknown)}")
+    clips = ((name, CLIPS[name]) for name in requested) if requested else CLIPS.items()
+
     print("Loading MeloTTS Spanish model...")
     tts = TTS(language="ES", device="cpu")
     speaker_id = tts.hps.data.spk2id["ES"]
 
-    for name, text in CLIPS.items():
+    for name, text in clips:
         output_path = output_directory / f"{name}.wav"
         print(f"es/{name}: {text}")
         tts.tts_to_file(
