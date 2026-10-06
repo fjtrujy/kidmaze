@@ -45,6 +45,7 @@ button {
 }
 
 .game-shell {
+  --shell-gutter: 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   width: 100%;
@@ -52,8 +53,11 @@ button {
   max-height: 100dvh;
   overflow: hidden;
   touch-action: none;
-  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
-    max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  padding:
+    calc(var(--shell-gutter) + env(safe-area-inset-top, 0px))
+    calc(var(--shell-gutter) + env(safe-area-inset-right, 0px))
+    calc(var(--shell-gutter) + env(safe-area-inset-bottom, 0px))
+    calc(var(--shell-gutter) + env(safe-area-inset-left, 0px));
   gap: clamp(12px, 2vw, 28px);
 }
 
@@ -560,6 +564,11 @@ button {
   display: grid;
   place-content: center;
   justify-items: center;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
   visibility: hidden;
   background: rgb(28 76 96 / 12%);
   opacity: 0;
@@ -610,7 +619,11 @@ button {
   z-index: 70;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding:
+    calc(24px + env(safe-area-inset-top, 0px))
+    calc(24px + env(safe-area-inset-right, 0px))
+    calc(24px + env(safe-area-inset-bottom, 0px))
+    calc(24px + env(safe-area-inset-left, 0px));
   background: rgb(31 79 103 / 58%);
   backdrop-filter: blur(8px);
 }
@@ -622,8 +635,9 @@ button {
 .final-card {
   display: grid;
   justify-items: center;
-  min-width: min(92vw, 420px);
-  max-height: calc(100dvh - 32px);
+  width: min(100%, 420px);
+  min-width: 0;
+  max-height: 100%;
   overflow: hidden;
   padding: 34px 48px 42px;
   border: 7px solid #fff;
@@ -688,7 +702,7 @@ button {
 
 .version-toast {
   position: fixed;
-  top: max(12px, env(safe-area-inset-top));
+  top: calc(12px + env(safe-area-inset-top, 0px));
   left: 50%;
   z-index: 120;
   padding: 9px 16px;
@@ -806,11 +820,11 @@ button {
   }
 
   .game-shell {
+    --shell-gutter: 10px;
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 47fr) minmax(0, 53fr);
     height: 100%;
     min-height: 0;
-    padding: 10px;
     gap: 12px;
   }
 
@@ -904,7 +918,7 @@ button {
 
 @media (max-height: 650px) and (orientation: landscape) {
   .game-shell {
-    padding: 8px;
+    --shell-gutter: 8px;
     gap: 10px;
   }
 
