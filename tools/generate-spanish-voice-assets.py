@@ -33,10 +33,12 @@ CLIPS = {
     "letter_d": "De.",
     "letter_e": "E.",
     "letter_f": "Efe.",
-    "letter_g": "La letra ge.",
+    # MeloTTS articulates these isolated names more reliably with a doubled
+    # Spanish /x/ onset while keeping the intended words "ge" / "jota".
+    "letter_g": "Jjé.",
     "letter_h": "Hache.",
     "letter_i": "I.",
-    "letter_j": "La letra jota.",
+    "letter_j": "Jjota.",
     "letter_k": "Ka.",
     "letter_l": "Ele.",
     "letter_m": "Eme.",
